@@ -72,142 +72,298 @@ namespace ControlFileGenerator.WinForms.Forms
 
         private void InitializeDataGridView()
         {
+            // Basic DataGridView settings
             dgvFields.AutoGenerateColumns = false;
             dgvFields.AllowUserToAddRows = false;
             dgvFields.AllowUserToDeleteRows = false;
             dgvFields.ReadOnly = false;
             dgvFields.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvFields.MultiSelect = false;
-            dgvFields.RowHeadersVisible = false;
-
-            // Add columns
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
+            dgvFields.RowHeadersVisible = true;
+            dgvFields.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
             {
-                DataPropertyName = "FieldName",
-                HeaderText = "Field Name",
-                Width = 120,
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
-            });
-
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
+                BackColor = Color.FromArgb(245, 245, 245)
+            };
+            dgvFields.EnableHeadersVisualStyles = false;
+            dgvFields.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
             {
-                DataPropertyName = "Order",
-                HeaderText = "Order",
-                Width = 60
-            });
+                BackColor = Color.FromArgb(64, 64, 64),
+                ForeColor = Color.White,
+                Font = new Font(dgvFields.Font, FontStyle.Bold)
+            };
+            dgvFields.GridColor = Color.LightGray;
+            dgvFields.BorderStyle = BorderStyle.Fixed3D;
+            dgvFields.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgvFields.RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+            dgvFields.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
 
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "StartPosition",
-                HeaderText = "Start Pos",
-                Width = 80
-            });
+            // Add columns with enhanced features
+            AddEnhancedColumns();
 
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "EndPosition",
-                HeaderText = "End Pos",
-                Width = 80
-            });
-
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "Length",
-                HeaderText = "Length",
-                Width = 70
-            });
-
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "CobolType",
-                HeaderText = "COBOL Type",
-                Width = 100
-            });
-
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "SqlType",
-                HeaderText = "SQL Type",
-                Width = 100
-            });
-
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "Nullable",
-                HeaderText = "Nullable",
-                Width = 70
-            });
-
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "Transform",
-                HeaderText = "Transform",
-                Width = 150
-            });
-
-            dgvFields.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "Description",
-                HeaderText = "Description",
-                Width = 200
-            });
-
-            // Handle cell value changed
+            // Handle events
             dgvFields.CellValueChanged += DgvFields_CellValueChanged;
-            
-            // Handle row validation for highlighting
             dgvFields.RowPrePaint += DgvFields_RowPrePaint;
+            dgvFields.CellFormatting += DgvFields_CellFormatting;
+            dgvFields.CellToolTipTextNeeded += DgvFields_CellToolTipTextNeeded;
+            dgvFields.KeyDown += DgvFields_KeyDown;
+            dgvFields.CellDoubleClick += DgvFields_CellDoubleClick;
             
             // Add context menu for additional functionality
             InitializeContextMenu();
+        }
+
+        private void AddEnhancedColumns()
+        {
+            // Field Name Column
+            var fieldNameColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "FieldName",
+                HeaderText = "Field Name",
+                Width = 140,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                ToolTipText = "Enter the Oracle column name (required)"
+            };
+            dgvFields.Columns.Add(fieldNameColumn);
+
+            // Order Column
+            var orderColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Order",
+                HeaderText = "Order",
+                Width = 60,
+                ToolTipText = "Sequential order of the field in the file"
+            };
+            dgvFields.Columns.Add(orderColumn);
+
+            // Start Position Column
+            var startPosColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "StartPosition",
+                HeaderText = "Start Pos",
+                Width = 80,
+                ToolTipText = "Starting position in fixed-width files"
+            };
+            dgvFields.Columns.Add(startPosColumn);
+
+            // End Position Column
+            var endPosColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "EndPosition",
+                HeaderText = "End Pos",
+                Width = 80,
+                ToolTipText = "Ending position in fixed-width files"
+            };
+            dgvFields.Columns.Add(endPosColumn);
+
+            // Length Column
+            var lengthColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Length",
+                HeaderText = "Length",
+                Width = 70,
+                ToolTipText = "Field length (calculated automatically)"
+            };
+            dgvFields.Columns.Add(lengthColumn);
+
+            // COBOL Type Column
+            var cobolTypeColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "CobolType",
+                HeaderText = "COBOL Type",
+                Width = 120,
+                ToolTipText = "COBOL type definition (e.g., PIC 9(6))"
+            };
+            dgvFields.Columns.Add(cobolTypeColumn);
+
+            // SQL Type Column (ComboBox)
+            var sqlTypeColumn = new DataGridViewComboBoxColumn
+            {
+                DataPropertyName = "SqlType",
+                HeaderText = "SQL Type",
+                Width = 120,
+                ToolTipText = "Oracle SQL data type",
+                Items = { "CHAR", "VARCHAR2", "NUMBER", "DATE", "TIMESTAMP", "CLOB", "BLOB", "DECIMAL", "INTEGER", "FLOAT" }
+            };
+            dgvFields.Columns.Add(sqlTypeColumn);
+
+            // Nullable Column (ComboBox)
+            var nullableColumn = new DataGridViewComboBoxColumn
+            {
+                DataPropertyName = "Nullable",
+                HeaderText = "Nullable",
+                Width = 80,
+                ToolTipText = "Whether the field can contain NULL values",
+                Items = { "YES", "NO" }
+            };
+            dgvFields.Columns.Add(nullableColumn);
+
+            // Transform Column
+            var transformColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Transform",
+                HeaderText = "Transform",
+                Width = 180,
+                ToolTipText = "SQL transformation expression (e.g., UPPER(:FIELD))"
+            };
+            dgvFields.Columns.Add(transformColumn);
+
+            // Default Value Column
+            var defaultValueColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "DefaultValue",
+                HeaderText = "Default",
+                Width = 100,
+                ToolTipText = "Default value for the field"
+            };
+            dgvFields.Columns.Add(defaultValueColumn);
+
+            // Null If Value Column
+            var nullIfColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "NullIfValue",
+                HeaderText = "Null If",
+                Width = 100,
+                ToolTipText = "Value to treat as NULL"
+            };
+            dgvFields.Columns.Add(nullIfColumn);
+
+            // Description Column
+            var descriptionColumn = new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Description",
+                HeaderText = "Description",
+                Width = 200,
+                ToolTipText = "Field description for documentation"
+            };
+            dgvFields.Columns.Add(descriptionColumn);
         }
 
         private void InitializeContextMenu()
         {
             var contextMenu = new ContextMenuStrip();
             
-            // Start from Scratch
-            var startFromScratchItem = new ToolStripMenuItem("Start from Scratch");
-            startFromScratchItem.Click += (sender, e) => BtnStartFromScratch_Click(sender, e);
-            contextMenu.Items.Add(startFromScratchItem);
+            // File Operations
+            var fileMenu = new ToolStripMenuItem("File Operations");
+            var startFromScratchItem = new ToolStripMenuItem("Start from Scratch", null, (sender, e) => BtnStartFromScratch_Click(sender, e));
+            var loadExcelItem = new ToolStripMenuItem("Load Excel Metadata", null, (sender, e) => BtnLoadExcel_Click(sender, e));
+            fileMenu.DropDownItems.AddRange(new ToolStripItem[] { startFromScratchItem, loadExcelItem });
+            contextMenu.Items.Add(fileMenu);
             
             contextMenu.Items.Add(new ToolStripSeparator());
             
-            // Add Field
-            var addFieldItem = new ToolStripMenuItem("Add Field");
-            addFieldItem.Click += (sender, e) => BtnAddField_Click(sender, e);
-            contextMenu.Items.Add(addFieldItem);
-            
-            // Remove Field
-            var removeFieldItem = new ToolStripMenuItem("Remove Field");
-            removeFieldItem.Click += (sender, e) => BtnRemoveField_Click(sender, e);
-            contextMenu.Items.Add(removeFieldItem);
-            
-            contextMenu.Items.Add(new ToolStripSeparator());
-            
-            // Validate
-            var validateItem = new ToolStripMenuItem("Validate Fields");
-            validateItem.Click += (sender, e) => BtnValidate_Click(sender, e);
-            contextMenu.Items.Add(validateItem);
-            
-            // Auto Fix
-            var autoFixItem = new ToolStripMenuItem("Auto Fix Issues");
-            autoFixItem.Click += (sender, e) => BtnAutoFix_Click(sender, e);
-            contextMenu.Items.Add(autoFixItem);
+            // Field Operations
+            var fieldMenu = new ToolStripMenuItem("Field Operations");
+            var addFieldItem = new ToolStripMenuItem("Add Field (Ctrl+N)", null, (sender, e) => BtnAddField_Click(sender, e));
+            var removeFieldItem = new ToolStripMenuItem("Remove Field (Del)", null, (sender, e) => BtnRemoveField_Click(sender, e));
+            var duplicateFieldItem = new ToolStripMenuItem("Duplicate Field", null, DuplicateSelectedField);
+            var moveUpItem = new ToolStripMenuItem("Move Up", null, MoveFieldUp);
+            var moveDownItem = new ToolStripMenuItem("Move Down", null, MoveFieldDown);
+            fieldMenu.DropDownItems.AddRange(new ToolStripItem[] { addFieldItem, removeFieldItem, duplicateFieldItem, new ToolStripSeparator(), moveUpItem, moveDownItem });
+            contextMenu.Items.Add(fieldMenu);
             
             contextMenu.Items.Add(new ToolStripSeparator());
             
-            // Save/Load
-            var saveItem = new ToolStripMenuItem("Save Field Definitions");
-            saveItem.Click += (sender, e) => BtnSave_Click(sender, e);
-            contextMenu.Items.Add(saveItem);
+            // Validation
+            var validationMenu = new ToolStripMenuItem("Validation");
+            var validateItem = new ToolStripMenuItem("Validate Fields", null, (sender, e) => BtnValidate_Click(sender, e));
+            var autoFixItem = new ToolStripMenuItem("Auto Fix Issues", null, (sender, e) => BtnAutoFix_Click(sender, e));
+            validationMenu.DropDownItems.AddRange(new ToolStripItem[] { validateItem, autoFixItem });
+            contextMenu.Items.Add(validationMenu);
             
-            var loadItem = new ToolStripMenuItem("Load Field Definitions");
-            loadItem.Click += (sender, e) => BtnLoad_Click(sender, e);
-            contextMenu.Items.Add(loadItem);
+            contextMenu.Items.Add(new ToolStripSeparator());
+            
+            // Quick Actions
+            var quickMenu = new ToolStripMenuItem("Quick Actions");
+            var toggleModeItem = new ToolStripMenuItem("Toggle Mode", null, (sender, e) => BtnToggleMode_Click(sender, e));
+            var previewItem = new ToolStripMenuItem("Preview Control File", null, (sender, e) => BtnPreview_Click(sender, e));
+            var exportItem = new ToolStripMenuItem("Export .ctl File", null, (sender, e) => BtnExport_Click(sender, e));
+            quickMenu.DropDownItems.AddRange(new ToolStripItem[] { toggleModeItem, previewItem, exportItem });
+            contextMenu.Items.Add(quickMenu);
+            
+            contextMenu.Items.Add(new ToolStripSeparator());
+            
+            // Help
+            var helpItem = new ToolStripMenuItem("Show Keyboard Shortcuts", null, ShowKeyboardShortcuts);
+            contextMenu.Items.Add(helpItem);
             
             // Assign context menu to DataGridView
             dgvFields.ContextMenuStrip = contextMenu;
+        }
+
+        private void DuplicateSelectedField(object sender, EventArgs e)
+        {
+            if (dgvFields.SelectedRows.Count > 0)
+            {
+                var selectedIndex = dgvFields.SelectedRows[0].Index;
+                if (selectedIndex >= 0 && selectedIndex < _fieldDefinitions.Count)
+                {
+                    var originalField = _fieldDefinitions[selectedIndex];
+                    var newField = originalField.Clone();
+                    newField.FieldName = $"{originalField.FieldName}_COPY";
+                    newField.Order = _fieldDefinitions.Count + 1;
+                    
+                    _fieldDefinitions.Insert(selectedIndex + 1, newField);
+                    RefreshDataGridView();
+                    UpdateButtonStates();
+                    UpdateStatusMessage($"Duplicated field '{originalField.FieldName}'");
+                }
+            }
+        }
+
+        private void MoveFieldUp(object sender, EventArgs e)
+        {
+            if (dgvFields.SelectedRows.Count > 0)
+            {
+                var selectedIndex = dgvFields.SelectedRows[0].Index;
+                if (selectedIndex > 0 && selectedIndex < _fieldDefinitions.Count)
+                {
+                    var field = _fieldDefinitions[selectedIndex];
+                    _fieldDefinitions.RemoveAt(selectedIndex);
+                    _fieldDefinitions.Insert(selectedIndex - 1, field);
+                    
+                    RefreshDataGridView();
+                    dgvFields.Rows[selectedIndex - 1].Selected = true;
+                    UpdateButtonStates();
+                    UpdateStatusMessage($"Moved field '{field.FieldName}' up");
+                }
+            }
+        }
+
+        private void MoveFieldDown(object sender, EventArgs e)
+        {
+            if (dgvFields.SelectedRows.Count > 0)
+            {
+                var selectedIndex = dgvFields.SelectedRows[0].Index;
+                if (selectedIndex >= 0 && selectedIndex < _fieldDefinitions.Count - 1)
+                {
+                    var field = _fieldDefinitions[selectedIndex];
+                    _fieldDefinitions.RemoveAt(selectedIndex);
+                    _fieldDefinitions.Insert(selectedIndex + 1, field);
+                    
+                    RefreshDataGridView();
+                    dgvFields.Rows[selectedIndex + 1].Selected = true;
+                    UpdateButtonStates();
+                    UpdateStatusMessage($"Moved field '{field.FieldName}' down");
+                }
+            }
+        }
+
+        private void ShowKeyboardShortcuts(object sender, EventArgs e)
+        {
+            var shortcuts = new[]
+            {
+                "Ctrl+N: Add new field",
+                "Delete: Remove selected field",
+                "Enter/F2: Start editing cell",
+                "Ctrl+Z: Undo (if implemented)",
+                "Ctrl+Y: Redo (if implemented)",
+                "F5: Refresh grid",
+                "Ctrl+S: Save field definitions",
+                "Ctrl+O: Load field definitions"
+            };
+
+            var message = "Keyboard Shortcuts:\n\n" + string.Join("\n", shortcuts);
+            MessageBox.Show(message, "Keyboard Shortcuts", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void LoadDefaultConfiguration()
@@ -746,6 +902,107 @@ namespace ControlFileGenerator.WinForms.Forms
         private void DgvFields_SelectionChanged(object sender, EventArgs e)
         {
             UpdateButtonStates();
+        }
+
+        private void DgvFields_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
+            // Format numeric columns
+            if (e.ColumnIndex == 1 || e.ColumnIndex == 2 || e.ColumnIndex == 3 || e.ColumnIndex == 4) // Order, StartPos, EndPos, Length
+            {
+                if (e.Value != null && int.TryParse(e.Value.ToString(), out int numValue))
+                {
+                    e.Value = numValue.ToString();
+                    e.FormattingApplied = true;
+                }
+            }
+
+            // Format nullable column
+            if (e.ColumnIndex == 7 && e.Value != null) // Nullable column
+            {
+                string value = e.Value.ToString().ToUpper();
+                e.Value = value == "TRUE" || value == "YES" ? "YES" : "NO";
+                e.FormattingApplied = true;
+            }
+        }
+
+        private void DgvFields_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
+            // Get the field for this row
+            if (e.RowIndex < _fieldDefinitions.Count)
+            {
+                var field = _fieldDefinitions[e.RowIndex];
+                var column = dgvFields.Columns[e.ColumnIndex];
+
+                // Provide specific tooltips based on column and field state
+                switch (e.ColumnIndex)
+                {
+                    case 0: // Field Name
+                        if (string.IsNullOrEmpty(field.FieldName))
+                            e.ToolTipText = "Field name is required and must be unique";
+                        else if (_fieldDefinitions.Count(f => f.FieldName.Equals(field.FieldName, StringComparison.OrdinalIgnoreCase)) > 1)
+                            e.ToolTipText = "Duplicate field name detected";
+                        break;
+                    case 1: // Order
+                        if (field.Order.HasValue && field.Order <= 0)
+                            e.ToolTipText = "Order must be a positive number";
+                        break;
+                    case 2: // Start Position
+                    case 3: // End Position
+                        if (field.StartPosition.HasValue && field.EndPosition.HasValue && field.StartPosition >= field.EndPosition)
+                            e.ToolTipText = "Start position must be less than end position";
+                        break;
+                    case 5: // COBOL Type
+                        if (!string.IsNullOrEmpty(field.CobolType) && string.IsNullOrEmpty(field.SqlType))
+                            e.ToolTipText = "SQL type will be auto-inferred from COBOL type";
+                        break;
+                }
+            }
+        }
+
+        private void DgvFields_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Keyboard shortcuts
+            switch (e.KeyCode)
+            {
+                case Keys.N when e.Control: // Ctrl+N for new field
+                    BtnAddField_Click(sender, e);
+                    e.Handled = true;
+                    break;
+                case Keys.Delete: // Delete key to remove field
+                    if (dgvFields.SelectedRows.Count > 0)
+                    {
+                        BtnRemoveField_Click(sender, e);
+                        e.Handled = true;
+                    }
+                    break;
+                case Keys.Enter: // Enter to start editing
+                    if (dgvFields.CurrentCell != null && !dgvFields.CurrentCell.IsInEditMode)
+                    {
+                        dgvFields.BeginEdit(true);
+                        e.Handled = true;
+                    }
+                    break;
+                case Keys.F2: // F2 to start editing
+                    if (dgvFields.CurrentCell != null && !dgvFields.CurrentCell.IsInEditMode)
+                    {
+                        dgvFields.BeginEdit(true);
+                        e.Handled = true;
+                    }
+                    break;
+            }
+        }
+
+        private void DgvFields_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                // Start editing the cell
+                dgvFields.BeginEdit(true);
+            }
         }
 
         private void DgvFields_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
