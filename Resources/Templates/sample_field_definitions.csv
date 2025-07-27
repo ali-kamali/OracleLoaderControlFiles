@@ -1,0 +1,11 @@
+Field Name,Order,Start Position,End Position,Length,COBOL Type,SQL Type,Nullable,Transform,Default Value,Null If Value,Enclosed By,Delimiter,Data Format,Description
+employee_id,1,1,6,6,PIC 9(6),NUMBER,NO,,,999999,,,,"Employee ID - 6 digits"
+first_name,2,7,26,20,PIC X(20),VARCHAR2,YES,"UPPER(:first_name)",,BLANKS,,,,"First name - uppercase"
+last_name,3,27,46,20,PIC X(20),VARCHAR2,YES,"UPPER(:last_name)",,BLANKS,,,,"Last name - uppercase"
+email,4,47,76,30,PIC X(30),VARCHAR2,YES,"LOWER(:email)",,BLANKS,,,,"Email address - lowercase"
+hire_date,5,77,84,8,,DATE,YES,,,00000000,,,"YYYYMMDD","Hire date in YYYYMMDD format"
+salary,6,85,91,7,PIC 9(7),NUMBER,YES,":salary * 100",,9999999,,,,"Salary in cents"
+department_id,7,92,94,3,PIC 9(3),NUMBER,YES,,,999,,,,"Department ID - 3 digits"
+manager_id,8,95,100,6,PIC 9(6),NUMBER,YES,,,999999,,,,"Manager ID - 6 digits"
+status,9,101,101,1,PIC X(1),CHAR,YES,"UPPER(:status)",A,BLANKS,,,,"Status - A=Active, I=Inactive"
+created_date,10,102,109,8,,DATE,YES,,,00000000,,,"YYYYMMDD","Record creation date" 

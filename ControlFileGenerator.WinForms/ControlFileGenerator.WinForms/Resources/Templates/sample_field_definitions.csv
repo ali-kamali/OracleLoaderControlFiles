@@ -1,0 +1,9 @@
+Field Name,Order,Start Position,End Position,Length,COBOL Type,SQL Type,Nullable,Transform,Default Value,Null If Value,Enclosed By,Delimiter,Data Format,Description
+EMPNO,1,1,6,6,PIC 9(6),NUMBER,NO,,,,"",,,"Employee Number"
+ENAME,2,7,26,20,PIC X(20),VARCHAR2,YES,"UPPER(:ENAME)",,BLANKS,"",,,"Employee Name"
+SAL,3,27,33,7,PIC 9(7)V99,DECIMAL,YES,":SAL * 100",,99999,"",,,"Salary"
+HIREDATE,4,34,41,8,PIC 9(8),DATE,YES,,,,"",,"YYYYMMDD","Hire Date"
+DEPTNO,5,42,44,3,PIC 9(3),NUMBER,YES,,,,"",,,"Department Number"
+JOB,6,45,54,10,PIC X(10),VARCHAR2,YES,"UPPER(:JOB)",,,"",,,"Job Title"
+MGR,7,55,60,6,PIC 9(6),NUMBER,YES,,,,"",,,"Manager Number"
+COMM,8,61,68,8,PIC 9(8)V99,DECIMAL,YES,,,,"",,,"Commission" 
