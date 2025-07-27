@@ -41,7 +41,6 @@ namespace ControlFileGenerator.WinForms.Services
                 { "COBOL Type", "CobolType" },
                 { "CobolType", "CobolType" },
                 { "COBOL", "CobolType" },
-                { "Cobol", "CobolType" },
                 
                 { "SQL Type", "SqlType" },
                 { "SqlType", "SqlType" },
