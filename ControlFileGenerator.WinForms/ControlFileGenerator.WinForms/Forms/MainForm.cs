@@ -61,6 +61,7 @@ namespace ControlFileGenerator.WinForms.Forms
             btnPreview.Click += BtnPreview_Click;
             btnExport.Click += BtnExport_Click;
             btnDataPreview.Click += BtnDataPreview_Click;
+            btnGenerateTable.Click += BtnGenerateTable_Click;
             cboSheet.SelectedIndexChanged += CboSheet_SelectedIndexChanged;
             dgvFields.CellValueChanged += DgvFields_CellValueChanged;
             dgvFields.RowPrePaint += DgvFields_RowPrePaint;
@@ -1220,6 +1221,42 @@ namespace ControlFileGenerator.WinForms.Forms
             }
         }
 
+        private void BtnGenerateTable_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (_fieldDefinitions == null || !_fieldDefinitions.Any())
+                {
+                    MessageBox.Show("Please load field definitions from Excel first.", "No Data", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                using var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "SQL Files (*.sql)|*.sql|All Files (*.*)|*.*",
+                    Title = "Save Oracle Table DDL",
+                    FileName = $"{_loaderConfig.TableName}_table.sql"
+                };
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    var tableDdl = FieldDefinitionExporter.ExportToSql(_fieldDefinitions, _loaderConfig);
+                    File.WriteAllText(saveFileDialog.FileName, tableDdl);
+                    
+                    UpdateStatusMessage($"Table DDL saved to: {saveFileDialog.FileName}");
+                    MessageBox.Show($"Oracle table DDL generated successfully!\n\nFile: {saveFileDialog.FileName}\n\nThis DDL includes all your application settings including partitioning, character sets, and performance options.", "Table DDL Generated", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                _loggingService.LogError("Error generating table DDL", ex);
+                MessageBox.Show($"Error generating table DDL: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void UpdateButtonStates()
         {
             bool hasData = _fieldDefinitions != null && _fieldDefinitions.Any();
@@ -1237,6 +1274,7 @@ namespace ControlFileGenerator.WinForms.Forms
             // Data-dependent buttons
             btnPreview.Enabled = hasData;
             btnExport.Enabled = hasData;
+            btnGenerateTable.Enabled = hasData;
             btnDataPreview.Enabled = hasData && hasDataFile;
             btnRemoveField.Enabled = hasData && hasSelectedRow;
             

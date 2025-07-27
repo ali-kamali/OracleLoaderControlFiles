@@ -35,6 +35,7 @@ namespace ControlFileGenerator.WinForms.Forms
             btnPreview = new Button();
             btnExport = new Button();
             btnDataPreview = new Button();
+            btnGenerateTable = new Button();
             lblStatus = new Label();
             lblSheet = new Label();
             panelTop = new Panel();
@@ -135,6 +136,17 @@ namespace ControlFileGenerator.WinForms.Forms
             btnDataPreview.Text = "Data Preview";
             btnDataPreview.UseVisualStyleBackColor = true;
             // 
+            // btnGenerateTable
+            // 
+            btnGenerateTable.Enabled = false;
+            btnGenerateTable.Location = new Point(519, 9);
+            btnGenerateTable.Margin = new Padding(3, 4, 3, 4);
+            btnGenerateTable.Name = "btnGenerateTable";
+            btnGenerateTable.Size = new Size(114, 35);
+            btnGenerateTable.TabIndex = 7;
+            btnGenerateTable.Text = "Generate Table";
+            btnGenerateTable.UseVisualStyleBackColor = true;
+            // 
             // lblStatus
             // 
             lblStatus.AutoSize = true;
@@ -198,6 +210,8 @@ namespace ControlFileGenerator.WinForms.Forms
             panelToolbar.Controls.Add(btnSettings);
             panelToolbar.Controls.Add(btnPreview);
             panelToolbar.Controls.Add(btnExport);
+            panelToolbar.Controls.Add(btnDataPreview);
+            panelToolbar.Controls.Add(btnGenerateTable);
             panelToolbar.Controls.Add(btnDataPreview);
             panelToolbar.Dock = DockStyle.Top;
             panelToolbar.Location = new Point(0, 0);
@@ -320,6 +334,7 @@ namespace ControlFileGenerator.WinForms.Forms
         private System.Windows.Forms.Button btnPreview;
         private System.Windows.Forms.Button btnExport;
         private System.Windows.Forms.Button btnDataPreview;
+        private System.Windows.Forms.Button btnGenerateTable;
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label lblSheet;
         private System.Windows.Forms.Panel panelTop;

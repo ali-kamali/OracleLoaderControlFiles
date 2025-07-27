@@ -70,13 +70,28 @@ namespace ControlFileGenerator.WinForms.Services
         }
 
         /// <summary>
-        /// Exports field definitions to SQL CREATE TABLE format
+        /// Exports field definitions to SQL CREATE TABLE format with all application settings
         /// </summary>
-        public static string ExportToSql(List<FieldDefinition> fields, string tableName = "IMPORT_TABLE")
+        public static string ExportToSql(List<FieldDefinition> fields, LoaderConfig? config = null, string tableName = "IMPORT_TABLE")
         {
             var sql = new StringBuilder();
             
-            sql.AppendLine($"CREATE TABLE {tableName} (");
+            // Use table name from config if available
+            var finalTableName = !string.IsNullOrEmpty(config?.TableName) ? config.TableName : tableName;
+            
+            sql.AppendLine($"-- Oracle Table DDL Generated from SQL*Loader Configuration");
+            sql.AppendLine($"-- Generated on: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sql.AppendLine($"-- Table: {finalTableName}");
+            sql.AppendLine();
+            
+            // Add character set if specified
+            var characterSet = config?.GetCharacterSetString();
+            if (!string.IsNullOrEmpty(characterSet))
+            {
+                sql.AppendLine($"-- Character Set: {characterSet}");
+            }
+            
+            sql.AppendLine($"CREATE TABLE {finalTableName} (");
             
             var fieldDefinitions = new List<string>();
             foreach (var field in fields)
@@ -93,7 +108,55 @@ namespace ControlFileGenerator.WinForms.Services
             }
             
             sql.AppendLine(string.Join(",\n", fieldDefinitions));
-            sql.AppendLine(");");
+            sql.AppendLine(")");
+            
+            // Add storage options
+            if (config != null)
+            {
+                // Add character set
+                if (!string.IsNullOrEmpty(characterSet))
+                {
+                    sql.AppendLine($"CHARACTERSET {config.CharacterSet}");
+                }
+                
+                // Add tablespace (if configured)
+                // sql.AppendLine("TABLESPACE USERS");
+                
+                // Add compression (if direct path is enabled)
+                if (config.UseDirectPath)
+                {
+                    sql.AppendLine("COMPRESS");
+                }
+                
+                // Add logging options
+                sql.AppendLine("LOGGING");
+            }
+            
+            sql.AppendLine(";");
+            sql.AppendLine();
+            
+            // Add comments
+            sql.AppendLine("-- Add comments for better documentation");
+            foreach (var field in fields.Where(f => !string.IsNullOrEmpty(f.Description)))
+            {
+                sql.AppendLine($"COMMENT ON COLUMN {finalTableName}.{field.FieldName} IS '{field.Description}';");
+            }
+            sql.AppendLine();
+            
+            // Add partition information if configured
+            if (config?.UseSpecificPartition == true && !string.IsNullOrEmpty(config.PartitionName))
+            {
+                sql.AppendLine($"-- Table is configured for partition: {config.PartitionName}");
+                sql.AppendLine($"-- Note: Partition DDL must be created separately based on your partitioning strategy");
+                sql.AppendLine();
+            }
+            
+            // Add performance recommendations
+            sql.AppendLine("-- Performance Recommendations:");
+            sql.AppendLine("-- 1. Consider adding appropriate indexes based on query patterns");
+            sql.AppendLine("-- 2. Review storage parameters for your data volume");
+            sql.AppendLine("-- 3. Consider partitioning for large tables");
+            sql.AppendLine("-- 4. Monitor table growth and adjust storage accordingly");
             
             return sql.ToString();
         }
@@ -167,15 +230,15 @@ namespace ControlFileGenerator.WinForms.Services
         /// <summary>
         /// Saves field definitions to a file
         /// </summary>
-        public static async Task SaveToFileAsync(List<FieldDefinition> fields, string filePath, ExportFormat format = ExportFormat.Json)
+        public static async Task SaveToFileAsync(List<FieldDefinition> fields, string filePath, ExportFormat format = ExportFormat.Json, LoaderConfig? config = null)
         {
             string content = format switch
             {
-                ExportFormat.Json => ExportToJson(fields),
+                ExportFormat.Json => ExportToJson(fields, config),
                 ExportFormat.Csv => ExportToCsv(fields),
-                ExportFormat.Sql => ExportToSql(fields),
-                ExportFormat.ControlFile => ExportToControlFile(fields),
-                _ => ExportToJson(fields)
+                ExportFormat.Sql => ExportToSql(fields, config),
+                ExportFormat.ControlFile => ExportToControlFile(fields, config),
+                _ => ExportToJson(fields, config)
             };
 
             await File.WriteAllTextAsync(filePath, content, Encoding.UTF8);
