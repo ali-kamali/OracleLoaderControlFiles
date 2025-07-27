@@ -1,270 +1,383 @@
 # Oracle SQL*Loader Control File Generator - Usage Guide
 
-## Overview
+This guide provides detailed instructions for using the Oracle SQL*Loader Control File Generator application to create control files for loading data into Oracle databases.
 
-This guide explains how to use the enhanced Oracle SQL*Loader Control File Generator with comprehensive COBOL to Oracle type mapping, edge case handling, and validation features.
+## Table of Contents
+
+1. [Getting Started](#getting-started)
+2. [Excel Import Mode](#excel-import-mode)
+3. [Manual Entry Mode](#manual-entry-mode)
+4. [Field Management](#field-management)
+5. [Validation and Error Handling](#validation-and-error-handling)
+6. [Settings Configuration](#settings-configuration)
+7. [Export and Preview](#export-and-preview)
+8. [Troubleshooting](#troubleshooting)
 
 ## Getting Started
 
-### Prerequisites
-- .NET 6.0 or later
-- Windows Forms application
-- Excel files (optional) for importing field definitions
+### Launching the Application
 
-### Installation
-1. Build the solution using Visual Studio or `dotnet build`
-2. Run the application: `dotnet run` or execute the compiled executable
+1. **Start the Application**: Run `ControlFileGenerator.WinForms.exe`
+2. **Initial Screen**: You'll see the main interface with:
+   - Top panel: Excel import controls
+   - Main area: DataGridView for field definitions
+   - Bottom panel: Action buttons and status
 
-## Core Features
+### Understanding the Interface
 
-### 1. COBOL to Oracle Type Mapping
+- **Load Excel Metadata**: Import field definitions from Excel files
+- **Start from Scratch**: Begin with an empty field list
+- **Add Field**: Create new field definitions manually
+- **Remove Field**: Delete selected fields
+- **Toggle Mode**: Switch between fixed-width and CSV modes
+- **Validate**: Check for errors and warnings
+- **Auto Fix**: Automatically resolve common issues
+- **Settings**: Configure global options
+- **Preview**: View generated control file
+- **Export .ctl**: Save the control file
+- **Data Preview**: Preview actual data using field definitions
 
-The application automatically maps COBOL data types to Oracle SQL types:
+## Excel Import Mode
 
-#### Automatic Type Inference
-- **COBOL Type:** `PIC 9(10)` → **Oracle Type:** `NUMBER(10)`
-- **COBOL Type:** `PIC X(50)` → **Oracle Type:** `VARCHAR2(50)`
-- **COBOL Type:** `PIC 9(8)V99` → **Oracle Type:** `NUMBER(10,2)`
+### Step 1: Prepare Your Excel File
 
-#### Manual Override
-You can manually specify Oracle types if the automatic mapping doesn't meet your needs.
+Create an Excel file with the following columns (headers are flexible):
 
-### 2. Edge Case Handling
+| Column | Required | Description | Example |
+|--------|----------|-------------|---------|
+| Field Name | Yes | Oracle column name | `EMPNO` |
+| Order | No | Field order in file | `1` |
+| Start Position | No | Starting position | `1` |
+| End Position | No | Ending position | `6` |
+| Length | No | Field length | `6` |
+| COBOL Type | No | COBOL type definition | `PIC 9(6)` |
+| SQL Type | No | Oracle SQL type | `NUMBER` |
+| Nullable | No | YES/NO | `YES` |
+| Transform | No | SQL transformation | `UPPER(:ENAME)` |
+| Default Value | No | Default value | `USA` |
+| Null If Value | No | NULL condition | `BLANKS` |
+| Enclosed By | No | Quote character | `"` |
+| Delimiter | No | Field delimiter | `,` |
+| Data Format | No | Date/number format | `YYYYMMDD` |
+| Description | No | Field description | `Employee Number` |
 
-The application handles various edge cases gracefully:
+### Step 2: Import Excel File
 
-#### Missing SQL Types
-- Automatically infers Oracle types from COBOL types
-- Defaults to `VARCHAR2(255)` if no COBOL type is available
+1. **Click "Load Excel Metadata"**
+2. **Select your Excel file** (.xlsx or .xls format)
+3. **Choose worksheet** from the dropdown (if multiple sheets)
+4. **Review imported fields** in the DataGridView
 
-#### Missing Positions
-- Calculates start/end positions based on field order and length
-- Uses sequential positioning when order is available
+### Step 3: Review and Edit
 
-#### Overlapping Positions
-- Detects and warns about overlapping field positions
-- Allows manual correction without crashing
+- **Check field names**: Ensure they match your Oracle table
+- **Verify data types**: Review auto-inferred SQL types
+- **Adjust positions**: Modify start/end positions if needed
+- **Add transformations**: Include data transformations as needed
 
-#### Duplicate Field Names
-- Warns about duplicate field names (case-insensitive)
-- Allows editing to resolve conflicts
+## Manual Entry Mode
 
-### 3. Validation System
+### Step 1: Start from Scratch
 
-#### Real-time Validation
-- Fields are validated as you edit them
-- Color-coded highlighting:
-  - **Green:** Valid fields
-  - **Yellow:** Fields with warnings
-  - **Red:** Fields with errors
+1. **Click "Start from Scratch"**
+2. **Clear existing fields** (if any)
+3. **Begin with empty field list**
 
-#### Validation Rules
-- Field names are required and non-empty
-- SQL types must be valid Oracle data types
-- Length values must be positive
-- Start positions must be ≤ end positions
+### Step 2: Add Fields
 
-### 4. Starting from Scratch
+1. **Click "Add Field"** for each field you need
+2. **Fill in required information**:
+   - **Field Name**: Oracle column name
+   - **Order**: Sequential order (1, 2, 3, etc.)
+   - **COBOL Type**: If available (e.g., `PIC 9(6)`)
+   - **SQL Type**: Oracle data type (auto-inferred)
 
-You can create field definitions without importing from Excel:
+### Step 3: Configure Field Properties
 
-1. **Generate Default Fields:** Creates 5 default fields with basic properties
-2. **Add Fields:** Add new fields with auto-incremented order
-3. **Remove Fields:** Delete selected fields and reorder remaining
-4. **Edit Fields:** Modify field properties with real-time validation
+For each field, set appropriate properties:
 
-### 5. Mode Toggle
+#### Basic Properties
+- **Field Name**: Must be unique
+- **Order**: Determines field sequence
+- **COBOL Type**: Used for type inference
+- **SQL Type**: Oracle data type
 
-Switch between fixed-width and CSV modes:
+#### Position Properties (Fixed Width)
+- **Start Position**: Beginning character position
+- **End Position**: Ending character position
+- **Length**: Automatically calculated
 
-#### Fixed-Width Mode
-- Uses `StartPosition` and `EndPosition` fields
-- Optimized for fixed-width data files
-- Automatic position calculation
+#### Advanced Properties
+- **Nullable**: YES/NO
+- **Transform**: SQL expression (e.g., `UPPER(:FIELD)`)
+- **Default Value**: Default if NULL
+- **Null If Value**: Value to treat as NULL
+- **Data Format**: For dates/numbers
 
-#### CSV Mode
-- Uses `Delimiter` field
-- Clears position information
-- Optimized for comma-separated values
+## Field Management
 
-## Step-by-Step Usage
+### Adding Fields
 
-### Method 1: Import from Excel
+1. **Click "Add Field"**
+2. **New field appears** at the bottom of the list
+3. **Fill in required properties**
+4. **Use "Auto Fix"** to infer missing information
 
-1. **Load Excel File**
-   - Click "Load Excel Metadata"
-   - Select your Excel file with field definitions
-   - Choose the appropriate worksheet
+### Removing Fields
 
-2. **Review and Edit**
-   - Review the imported field definitions
-   - Edit field properties as needed
-   - Check for validation errors/warnings
+1. **Select the field** in the DataGridView
+2. **Click "Remove Field"**
+3. **Confirm deletion** if prompted
 
-3. **Apply Auto-Fix** (if needed)
-   - Click "Auto-Fix" to resolve common issues
-   - Review the changes made
+### Editing Fields
 
-4. **Validate**
-   - Click "Validate" to check all fields
-   - Address any errors or warnings
+1. **Click directly in the cell** you want to edit
+2. **Type new value**
+3. **Press Enter** or click elsewhere to save
+4. **Validation occurs automatically**
 
-5. **Export**
-   - Click "Export" to generate the control file
-   - Save in your preferred format
+### Reordering Fields
 
-### Method 2: Start from Scratch
+1. **Edit the Order column** for each field
+2. **Use sequential numbers** (1, 2, 3, etc.)
+3. **Click "Auto Fix"** to recalculate positions
 
-1. **Generate Default Fields**
-   - Click "Start from Scratch"
-   - 5 default fields will be created
+## Validation and Error Handling
 
-2. **Add/Remove Fields**
-   - Add new fields as needed
-   - Remove unnecessary fields
-   - Reorder fields by editing the Order column
+### Visual Indicators
 
-3. **Configure Field Properties**
-   - Set field names
-   - Specify COBOL types
-   - Oracle types will be auto-inferred
-   - Set positions and lengths
+The application uses color coding to show field status:
 
-4. **Validate and Export**
-   - Run validation
-   - Export the control file
+- **Green**: Valid field
+- **Yellow**: Warning (non-critical issue)
+- **Red**: Error (must be fixed)
 
-### Method 3: Load Saved Definitions
+### Running Validation
 
-1. **Load File**
-   - Click "Load" to import saved field definitions
-   - Supported formats: JSON, CSV
+1. **Click "Validate"** to check all fields
+2. **Review validation results** in status area
+3. **Fix errors** before proceeding
+4. **Use "Auto Fix"** for automatic corrections
 
-2. **Continue Editing**
-   - Modify fields as needed
-   - Apply validation
+### Common Validation Issues
 
-3. **Export**
-   - Generate the final control file
+#### Missing Required Fields
+- **Field Name**: Must be provided
+- **Order**: Must be sequential
+- **SQL Type**: Will be auto-inferred if missing
 
-## Field Properties
+#### Position Issues
+- **Overlapping positions**: Fields overlap in fixed-width mode
+- **Missing positions**: Start/end positions not provided
+- **Gaps**: Unused positions between fields
 
-### Required Properties
-- **Field Name:** Unique identifier for the field
-- **Order:** Sequential order of the field in the record
+#### Type Issues
+- **Invalid SQL types**: Not recognized Oracle types
+- **COBOL mapping**: Unable to map COBOL type to Oracle
+- **Format issues**: Invalid date/number formats
 
-### Optional Properties
-- **Start Position:** Starting position in fixed-width files
-- **End Position:** Ending position in fixed-width files
-- **Length:** Field length
-- **COBOL Type:** COBOL data type definition
-- **SQL Type:** Oracle data type (auto-inferred from COBOL)
-- **Nullable:** Whether the field can contain NULL values
-- **Transform:** Data transformation expression
-- **Default Value:** Default value for the field
-- **Null If Value:** Value that should be treated as NULL
-- **Enclosed By:** Character that encloses the field
-- **Delimiter:** Field delimiter (for CSV mode)
-- **Data Format:** Date/time format specification
-- **Description:** Field description for documentation
+### Auto Fix Features
 
-## Export Formats
+The "Auto Fix" button can resolve:
 
-### 1. Oracle SQL*Loader Control File (.ctl)
-Standard Oracle SQL*Loader control file format.
+- **Missing SQL types**: Infer from COBOL types
+- **Missing positions**: Calculate based on order
+- **Type mismatches**: Suggest appropriate types
+- **Format issues**: Apply standard formats
 
-### 2. JSON (.json)
-Complete field definitions with metadata for programmatic use.
+## Settings Configuration
 
-### 3. CSV (.csv)
-Tabular format for easy editing in spreadsheet applications.
+### Accessing Settings
 
-### 4. SQL (.sql)
-CREATE TABLE statements for direct database schema creation.
+1. **Click "Settings"** button
+2. **Settings dialog opens** with multiple tabs
 
-## Best Practices
+### Table Configuration
 
-### 1. COBOL Type Mapping
-- Use specific COBOL types when possible
-- Review auto-inferred Oracle types
-- Adjust precision and scale as needed
-- Consider performance implications of data types
+- **Table Name**: Target Oracle table
+- **Load Mode**: APPEND, REPLACE, INSERT, TRUNCATE
+- **Trailing Null Columns**: Handle trailing NULLs
 
-### 2. Validation
-- Run validation before export
-- Address errors before warnings
-- Use auto-fix for common issues
-- Review validation results carefully
+### File Configuration
 
-### 3. File Management
-- Save work frequently
-- Use descriptive file names
-- Export in multiple formats
-- Keep backup copies
+- **Input File**: Path to data file
+- **Bad File**: Path for rejected records
+- **Discard File**: Path for discarded records
+- **Encoding**: Character encoding (UTF8, etc.)
 
-### 4. Performance
-- Large field sets (>100 fields) may impact performance
-- Use validation sparingly on large datasets
-- Consider breaking large definitions into smaller files
+### Processing Options
+
+- **Max Errors**: Maximum errors before stopping
+- **Bind Size**: Memory allocation for loading
+- **Rows**: Rows per commit
+- **Skip Rows**: Header rows to skip
+- **Use Direct Path**: Enable direct path loading
+
+### CSV/Delimited Options
+
+- **Field Terminator**: Character separating fields
+- **Enclosed By**: Quote character
+- **Optionally Enclosed**: Whether quotes are optional
+- **Trim Option**: How to handle whitespace
+
+## Export and Preview
+
+### Previewing Control File
+
+1. **Click "Preview"** to see generated control file
+2. **Review syntax** and field mappings
+3. **Check for errors** in the preview
+4. **Copy to clipboard** if needed
+
+### Exporting Control File
+
+1. **Click "Export .ctl"**
+2. **Choose save location**
+3. **Enter filename** (with .ctl extension)
+4. **Click Save**
+
+### Data Preview
+
+1. **Configure data file path** in Settings
+2. **Click "Data Preview"**
+3. **View sample data** using field definitions
+4. **Verify field mappings** are correct
+
+### JSON Export
+
+1. **Use Field Definition Exporter** service
+2. **Save field configuration** as JSON
+3. **Reuse configuration** in future sessions
+
+## Mode Switching
+
+### Fixed Width Mode
+
+Use for files with fixed-length fields:
+
+```
+EMPNO     SMITH     SALARY    DATE
+123456    JOHN      50000     20240101
+```
+
+**Features:**
+- Position-based field definitions
+- No delimiters between fields
+- Precise character positioning
+
+### CSV/Delimited Mode
+
+Use for comma-separated or delimited files:
+
+```
+EMPNO,ENAME,SALARY,DATE
+123456,"SMITH, JOHN",50000,2024-01-01
+```
+
+**Features:**
+- Delimiter-separated fields
+- Optional field enclosure
+- Flexible field lengths
+
+### Switching Modes
+
+1. **Click "Toggle Mode"**
+2. **Mode indicator changes** (Fixed Width ↔ CSV/Delimited)
+3. **Field properties adjust** automatically
+4. **Validation rules update** for new mode
 
 ## Troubleshooting
 
-### Common Issues
+### Common Issues and Solutions
 
-#### Type Mapping Problems
-- **Issue:** Incorrect Oracle type inferred
-- **Solution:** Manually specify SQL type or adjust COBOL type
+#### Excel Import Problems
 
-#### Position Conflicts
-- **Issue:** Overlapping field positions
-- **Solution:** Use auto-fix or manually adjust positions
+**Issue**: Excel file not loading
+**Solution**: 
+- Check file format (.xlsx or .xls)
+- Verify column headers exist
+- Ensure file is not corrupted
+
+**Issue**: Wrong worksheet selected
+**Solution**:
+- Use dropdown to select correct worksheet
+- Check worksheet names in Excel
 
 #### Validation Errors
-- **Issue:** Fields marked as invalid
-- **Solution:** Check field properties and fix according to error messages
 
-#### Import Problems
-- **Issue:** Excel file not loading correctly
-- **Solution:** Check Excel format and ensure proper column headers
+**Issue**: Missing field names
+**Solution**:
+- Fill in all Field Name cells
+- Ensure names are unique
+- Use descriptive names
 
-### Error Messages
+**Issue**: Position overlaps
+**Solution**:
+- Check Start/End positions
+- Use "Auto Fix" to recalculate
+- Adjust field lengths
 
-#### "Field name is required"
-- Ensure all fields have non-empty names
+**Issue**: Invalid SQL types
+**Solution**:
+- Check COBOL type format
+- Use "Auto Fix" to infer types
+- Manually specify Oracle types
 
-#### "Invalid SQL type"
-- Use valid Oracle data types (CHAR, VARCHAR2, NUMBER, DATE, etc.)
+#### Export Problems
 
-#### "Position overlaps detected"
-- Adjust start/end positions to eliminate overlaps
+**Issue**: Control file syntax errors
+**Solution**:
+- Review preview before export
+- Check table name and field mappings
+- Verify Oracle syntax
 
-#### "Duplicate field name detected"
-- Ensure field names are unique (case-insensitive)
+**Issue**: File not saving
+**Solution**:
+- Check file permissions
+- Ensure directory exists
+- Use valid filename
+
+### Performance Tips
+
+1. **Use Direct Path** for large files
+2. **Adjust Bind Size** based on available memory
+3. **Set appropriate Rows** per commit
+4. **Use external tables** for very large datasets
+
+### Best Practices
+
+1. **Always validate** before export
+2. **Use descriptive field names**
+3. **Include field descriptions** for documentation
+4. **Test with sample data** before production
+5. **Backup configurations** as JSON files
 
 ## Advanced Features
 
-### Custom Validation Rules
-The system supports custom validation rules for specific requirements.
+### Custom Transformations
 
-### Template System
-Use predefined templates for common field definition patterns.
+Use SQL expressions for data transformation:
 
-### Batch Processing
-Process multiple files simultaneously for large-scale projects.
+- **Case conversion**: `UPPER(:FIELD)`, `LOWER(:FIELD)`
+- **String manipulation**: `TRIM(:FIELD)`, `SUBSTR(:FIELD, 1, 10)`
+- **Mathematical operations**: `:FIELD * 100`, `:FIELD + 1`
+- **Date formatting**: `TO_DATE(:FIELD, 'YYYYMMDD')`
 
-### Integration
-Direct integration with Oracle databases for schema generation.
+### Conditional Loading
 
-## Support
+Use NULLIF clauses for conditional loading:
 
-For additional support:
-1. Check the documentation files
-2. Review the sample templates
-3. Use the validation system to identify issues
-4. Export in multiple formats for different use cases
+- **Null if blank**: `NULLIF FIELD = BLANKS`
+- **Null if specific value**: `NULLIF FIELD = '99999'`
+- **Null if zero**: `NULLIF FIELD = 0`
 
-## Conclusion
+### Complex Field Types
 
-The Oracle SQL*Loader Control File Generator provides a comprehensive solution for converting COBOL field definitions to Oracle SQL*Loader control files. With its advanced type mapping, validation, and export capabilities, it streamlines the data migration process while ensuring accuracy and reliability.
+Handle various data types:
 
-The system is designed to be both powerful and user-friendly, accommodating various COBOL patterns while providing clear feedback and suggestions for optimal Oracle type selection. 
+- **Dates**: Use appropriate format strings
+- **Numbers**: Specify precision and scale
+- **Characters**: Choose CHAR vs VARCHAR2
+- **Large objects**: Use CLOB/BLOB for large data
+
+This comprehensive guide should help you effectively use the Oracle SQL*Loader Control File Generator application for all your data loading needs. 

@@ -48,11 +48,20 @@ namespace ControlFileGenerator.WinForms.Forms
             
             // Set up event handlers
             btnLoadExcel.Click += BtnLoadExcel_Click;
+            btnStartFromScratch.Click += BtnStartFromScratch_Click;
+            btnAddField.Click += BtnAddField_Click;
+            btnRemoveField.Click += BtnRemoveField_Click;
+            btnToggleMode.Click += BtnToggleMode_Click;
+            btnValidate.Click += BtnValidate_Click;
+            btnAutoFix.Click += BtnAutoFix_Click;
             btnSettings.Click += BtnSettings_Click;
             btnPreview.Click += BtnPreview_Click;
             btnExport.Click += BtnExport_Click;
             btnDataPreview.Click += BtnDataPreview_Click;
             cboSheet.SelectedIndexChanged += CboSheet_SelectedIndexChanged;
+            dgvFields.CellValueChanged += DgvFields_CellValueChanged;
+            dgvFields.RowPrePaint += DgvFields_RowPrePaint;
+            dgvFields.SelectionChanged += DgvFields_SelectionChanged;
             
             // Enable/disable buttons based on state
             UpdateButtonStates();
@@ -672,11 +681,23 @@ namespace ControlFileGenerator.WinForms.Forms
         {
             bool hasData = _fieldDefinitions != null && _fieldDefinitions.Any();
             bool hasDataFile = !string.IsNullOrEmpty(_loaderConfig.Infile) && File.Exists(_loaderConfig.Infile);
+            bool hasSelectedRow = dgvFields.SelectedRows.Count > 0;
             
+            // Always enabled buttons
             btnSettings.Enabled = true;
+            btnStartFromScratch.Enabled = true;
+            btnAddField.Enabled = true;
+            btnToggleMode.Enabled = true;
+            btnValidate.Enabled = true;
+            btnAutoFix.Enabled = true;
+            
+            // Data-dependent buttons
             btnPreview.Enabled = hasData;
             btnExport.Enabled = hasData;
             btnDataPreview.Enabled = hasData && hasDataFile;
+            btnRemoveField.Enabled = hasData && hasSelectedRow;
+            
+            // Excel-dependent buttons
             cboSheet.Enabled = !string.IsNullOrEmpty(_currentExcelFile);
         }
 
@@ -717,9 +738,14 @@ namespace ControlFileGenerator.WinForms.Forms
 
         private void UpdateModeDisplay()
         {
-            // Mode display functionality would be implemented when UI controls are added
-            // For now, just log the current mode
+            lblMode.Text = _isFixedWidthMode ? "Fixed Width" : "CSV/Delimited";
+            lblMode.ForeColor = _isFixedWidthMode ? Color.DarkBlue : Color.DarkGreen;
             _loggingService.Info($"Current Mode: {(_isFixedWidthMode ? "Fixed-Width" : "CSV")}");
+        }
+
+        private void DgvFields_SelectionChanged(object sender, EventArgs e)
+        {
+            UpdateButtonStates();
         }
 
         private void DgvFields_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)

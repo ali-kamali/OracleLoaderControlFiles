@@ -1,202 +1,259 @@
 # Oracle SQL*Loader Control File Generator
 
-A Windows Forms desktop application built with .NET 8 that generates Oracle SQL*Loader control files from Excel metadata definitions.
+A comprehensive Windows Forms (.NET 8, C#) desktop application for generating Oracle SQL*Loader .ctl files with support for both Excel metadata import and manual field definition.
 
 ## Features
 
-- **Excel Import**: Load field definitions from Excel files with flexible column mapping
-- **Field Editor**: Edit field properties with real-time preview
-- **Settings Management**: Configure Oracle table settings, file references, and advanced options
-- **Control File Preview**: Preview generated control files before export
-- **Export**: Save control files in .ctl format
-- **Validation**: Built-in validation for field definitions and control file syntax
+### Core Functionality
+- **Excel Metadata Import**: Import field definitions from Excel files containing metadata (not actual data)
+- **Manual Entry Mode**: Create field definitions from scratch with an intuitive UI
+- **COBOL to Oracle Type Mapping**: Automatic inference of Oracle SQL types from COBOL type definitions
+- **Fixed-Width and CSV Modes**: Support for both fixed-width and delimited file formats
+- **Live Preview**: Real-time preview of generated control files
+- **Validation and Auto-Fix**: Comprehensive validation with automatic error correction
 
-## Getting Started
+### Edge Case Handling
+- **Missing SQL Types**: Automatically infer from COBOL types or default to CHAR
+- **Missing Positions**: Calculate positions based on field order and previous field lengths
+- **Overlapping Positions**: Highlight warnings without crashing the application
+- **Duplicate Field Names**: Show warnings and allow user editing
+- **Unknown Excel Columns**: Ignore and show non-blocking warnings
 
-### Prerequisites
+### UI Features
+- **DataGridView Interface**: Edit fields directly in a grid with validation highlighting
+- **Visual Validation**: Invalid rows/cells highlighted in red with tooltips
+- **Mode Toggle**: Switch between fixed-width and CSV/delimited modes
+- **Global Settings**: Configure table name, load mode, file paths, and other options
+- **Export Options**: Save .ctl files and field configurations as JSON
 
+## Requirements
+
+- .NET 8.0 or later
 - Windows 10/11
-- .NET 8 Runtime
-- Excel files (.xlsx, .xls) with field definitions
+- EPPlus library (for Excel file processing)
 
-### Installation
+## Installation
 
-1. Download the latest release
-2. Extract the ZIP file
-3. Run `ControlFileGenerator.WinForms.exe`
-
-### Excel File Format
-
-The application expects Excel files with the following columns (column names are flexible):
-
-| Column Name | Required | Description |
-|-------------|----------|-------------|
-| Field Name | ✅ Yes | Oracle column name |
-| Order | ❌ | Order of field in file |
-| Start Position | ❌ | For fixed-width files |
-| End Position | ❌ | Used to derive length |
-| Length | ❌ | Used if no end position |
-| COBOL Type | ❌ | Optional, used for type mapping |
-| SQL Type | ❌ | Optional, CHAR/NUMBER/DATE etc. |
-| Nullable | ❌ | YES/NO |
-| Transform | ❌ | SQL expressions |
-| Default Value | ❌ | Constant |
-| Null If Value | ❌ | Used in NULLIF clause |
-| Enclosed By | ❌ | For delimited fields |
-| Delimiter | ❌ | Field-level delimiter (CSV) |
-| Data Format | ❌ | For dates/numbers |
-| Description | ❌ | Ignored during generation |
-
-### Sample Excel Template
-
-A sample CSV template is included in `Resources/Templates/sample_field_definitions.csv` that you can import into Excel.
+1. Clone or download the repository
+2. Open the solution in Visual Studio 2022 or later
+3. Restore NuGet packages
+4. Build the solution
+5. Run the application
 
 ## Usage
 
-### 1. Load Excel Metadata
+### Starting the Application
+1. Launch the application
+2. Choose between Excel import or manual entry mode
 
-1. Click "Load Excel Metadata"
-2. Select your Excel file
-3. Choose the worksheet containing field definitions
-4. The application will parse and display the fields in a grid
+### Excel Import Mode
+1. Click "Load Excel Metadata" to select an Excel file
+2. Choose the appropriate worksheet from the dropdown
+3. Review and edit imported field definitions
+4. Configure global settings using the Settings button
+5. Preview and export the control file
 
-### 2. Configure Settings
+### Manual Entry Mode
+1. Click "Start from Scratch" to begin with an empty field list
+2. Use "Add Field" to create new field definitions
+3. Edit field properties directly in the grid
+4. Use "Validate" to check for issues
+5. Use "Auto Fix" to automatically resolve common problems
 
-1. Click "Settings" to open the configuration dialog
-2. Set Oracle table name and load mode
-3. Configure file paths (INFILE, BADFILE, DISCARDFILE)
-4. Set advanced options (DIRECT, ERRORS, BINDSIZE, etc.)
+### Field Management
+- **Add Field**: Create a new field definition
+- **Remove Field**: Delete selected field (requires row selection)
+- **Edit Fields**: Modify properties directly in the grid
+- **Reorder Fields**: Use the Order column to arrange fields
 
-### 3. Preview Control File
+### Validation and Error Handling
+- **Real-time Validation**: Fields are validated as you type
+- **Visual Indicators**: 
+  - Green: Valid fields
+  - Yellow: Warnings
+  - Red: Errors
+- **Auto Fix**: Automatically resolve common issues
+- **Manual Validation**: Click "Validate" to check all fields
 
-1. Click "Preview" to see the generated control file
-2. Review the syntax and field mappings
-3. Use Ctrl+C to copy to clipboard or save directly
+### Mode Switching
+- **Fixed Width**: For files with fixed-length fields
+- **CSV/Delimited**: For comma-separated or delimited files
+- **Toggle Mode**: Switch between modes using the toggle button
 
-### 4. Export Control File
+### Export Options
+- **Preview**: View the generated control file before saving
+- **Export .ctl**: Save the control file to disk
+- **Data Preview**: Preview actual data using the field definitions
+- **JSON Export**: Save field configuration for later use
 
-1. Click "Export .ctl" to save the control file
-2. Choose a location and filename
-3. The file will be saved in Oracle SQL*Loader format
+## Field Definition Properties
 
-## Generated Control File Example
+### Required Properties
+- **Field Name**: Unique identifier for the field
+- **Order**: Sequential order of the field in the file
 
+### Position Properties (Fixed Width Mode)
+- **Start Position**: Beginning position of the field
+- **End Position**: Ending position of the field
+- **Length**: Field length (calculated automatically)
+
+### Type Properties
+- **COBOL Type**: Original COBOL type definition
+- **SQL Type**: Oracle SQL data type (auto-inferred)
+- **Nullable**: Whether the field can contain NULL values
+
+### Advanced Properties
+- **Transform**: Data transformation expression
+- **Default Value**: Default value for the field
+- **Null If Value**: Value to treat as NULL
+- **Enclosed By**: Character that encloses the field (CSV mode)
+- **Delimiter**: Field delimiter (CSV mode)
+- **Data Format**: Date/time format specification
+- **Description**: Field description for documentation
+
+## Global Settings
+
+### File Configuration
+- **Table Name**: Target Oracle table name
+- **Input File**: Path to the data file
+- **Bad File**: Path for rejected records
+- **Discard File**: Path for discarded records
+
+### Load Options
+- **Load Mode**: APPEND, REPLACE, INSERT, etc.
+- **Encoding**: Character encoding (UTF8, etc.)
+- **Max Errors**: Maximum number of errors before stopping
+- **Skip Rows**: Number of header rows to skip
+
+### Processing Options
+- **Bind Size**: Size of bind arrays
+- **Rows**: Number of rows per commit
+- **Use Direct Path**: Enable direct path loading
+- **Trailing Null Columns**: Handle trailing null columns
+
+### CSV/Delimited Options
+- **Field Terminator**: Character that separates fields
+- **Enclosed By**: Character that encloses fields
+- **Optionally Enclosed**: Whether fields are optionally enclosed
+- **Trim Option**: How to handle whitespace
+
+## COBOL to Oracle Type Mapping
+
+The application includes comprehensive COBOL to Oracle type mapping:
+
+### Numeric Types
+- `PIC 9(n)` → `NUMBER(n)`
+- `PIC S9(n)` → `NUMBER(n)` (signed)
+- `PIC 9(n)V9(m)` → `NUMBER(n+m,m)` (decimal)
+
+### Character Types
+- `PIC X(n)` → `CHAR(n)` or `VARCHAR2(n)`
+- `PIC A(n)` → `CHAR(n)`
+
+### Date Types
+- `PIC 9(8)` → `DATE` (with format specification)
+- `PIC X(10)` → `DATE` (with format specification)
+
+### Special Types
+- `PIC 9(15)V99` → `NUMBER(17,2)` (currency)
+- `PIC S9(10)V99` → `NUMBER(12,2)` (signed currency)
+
+## Error Handling
+
+### Validation Errors
+- Missing required fields
+- Invalid data types
+- Position overlaps
+- Duplicate field names
+
+### Warnings
+- Missing SQL types (auto-inferred)
+- Missing positions (auto-calculated)
+- Unknown Excel columns
+- Potential data type mismatches
+
+### Auto-Fix Capabilities
+- Infer missing SQL types from COBOL types
+- Calculate missing positions based on field order
+- Suggest appropriate data formats
+- Resolve common naming conflicts
+
+## File Formats
+
+### Excel Metadata Format
+The Excel file should contain columns for field definitions:
+- Field Name
+- Order
+- Start Position (optional)
+- End Position (optional)
+- Length (optional)
+- COBOL Type
+- SQL Type (optional)
+- Other properties as needed
+
+### Generated Control File Format
+Standard Oracle SQL*Loader control file format:
 ```sql
--- Oracle SQL*Loader Control File
--- Generated on: 2024-01-15 10:30:00
--- Table: EMPLOYEES
-
 LOAD DATA
-INFILE 'employees.dat'
-BADFILE 'employees.bad'
-DISCARDFILE 'employees.dsc'
-INTO TABLE EMPLOYEES
+INFILE 'datafile.dat'
+BADFILE 'badfile.bad'
+DISCARDFILE 'discardfile.dsc'
 APPEND
+INTO TABLE table_name
+FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
 TRAILING NULLCOLS
 (
-  EMPNO      POSITION(1:6)     INTEGER EXTERNAL,
-  ENAME      POSITION(7:26)    CHAR NULLIF ENAME=BLANKS "UPPER(:ENAME)",
-  SAL        POSITION(27:33)   DECIMAL EXTERNAL NULLIF SAL="99999" ":SAL * 100",
-  HIREDATE   POSITION(34:41)   DATE "YYYYMMDD"
+    field1 POSITION(1:10) CHAR(10),
+    field2 POSITION(11:20) NUMBER(10),
+    field3 POSITION(21:30) DATE "YYYY-MM-DD"
 )
 ```
-
-## Configuration
-
-The application saves configuration in:
-- `%APPDATA%\OracleControlFileGenerator\config.json`
-- `%APPDATA%\OracleControlFileGenerator\logs\`
-
-### Settings Categories
-
-#### Oracle Table Settings
-- **Table Name**: Target Oracle table
-- **Load Mode**: APPEND, REPLACE, INSERT, TRUNCATE
-- **Trailing Null Columns**: Enable TRAILING NULLCOLS
-
-#### File References
-- **Input File**: Data file path
-- **Bad File**: Rejected records file
-- **Discard File**: Discarded records file
-- **Encoding**: Character encoding
-
-#### Advanced Options
-- **Direct Path**: Enable DIRECT=TRUE
-- **Max Errors**: Maximum allowed errors
-- **Bind Size**: Memory allocation
-- **Rows**: Rows per commit
-
-#### Field Specifications
-- **Field Terminator**: Delimiter character
-- **Enclosed By**: Quote character
-- **Trim Option**: LRTRIM, LTRIM, RTRIM, NOTRIM
 
 ## Troubleshooting
 
 ### Common Issues
+1. **Excel Import Fails**: Ensure the Excel file contains the expected column headers
+2. **Validation Errors**: Use the Auto Fix button to resolve common issues
+3. **Position Overlaps**: Check field positions and use Auto Fix to recalculate
+4. **Type Mapping Issues**: Verify COBOL type format and check the mapping guide
 
-1. **Excel file not loading**: Ensure the file has proper headers and data
-2. **Field validation errors**: Check field names, positions, and data types
-3. **Control file syntax errors**: Verify Oracle table name and field mappings
-
-### Logs
-
-Application logs are stored in `%APPDATA%\OracleControlFileGenerator\logs\` and can help diagnose issues.
+### Performance Tips
+- Use Direct Path loading for large files
+- Adjust Bind Size and Rows based on available memory
+- Consider using external tables for very large datasets
 
 ## Development
 
-### Building from Source
-
-```bash
-git clone <repository>
-cd ControlFileGenerator.WinForms/ControlFileGenerator.WinForms
-dotnet build
-dotnet run
-```
-
-### Dependencies
-
-- .NET 8.0
-- EPPlus 8.0.8 (Excel processing)
-- Windows Forms
-
 ### Project Structure
-
 ```
 ControlFileGenerator.WinForms/
-├── Forms/
-│   ├── MainForm.cs              # Main application window
-│   ├── SettingsForm.cs          # Configuration dialog
-│   ├── PreviewForm.cs           # Control file preview
-│   └── FieldEditorForm.cs       # Field editing dialog
-├── Models/
-│   ├── FieldDefinition.cs       # Field metadata model
-│   └── LoaderConfig.cs          # Configuration model
-├── Services/
-│   ├── ExcelMetadataParser.cs   # Excel file parsing
-│   ├── ControlFileGenerator.cs  # Control file generation
-│   ├── PositionCalculator.cs    # Position calculations
-│   ├── ConfigurationService.cs  # Settings management
-│   └── LoggingService.cs        # Application logging
-└── Resources/
-    └── Templates/               # Sample templates
+├── Forms/                 # Windows Forms UI
+├── Models/               # Data models
+├── Services/             # Business logic services
+└── Resources/            # Templates and resources
 ```
+
+### Key Services
+- **ExcelMetadataParser**: Handles Excel file import
+- **CobolTypeMapper**: Maps COBOL types to Oracle types
+- **EdgeCaseHandler**: Manages validation and error handling
+- **ControlFileGenerator**: Generates the final .ctl file
+- **ConfigurationService**: Manages application settings
+
+### Extending the Application
+- Add new COBOL type mappings in `CobolTypeMapper.cs`
+- Implement additional validation rules in `EdgeCaseHandler.cs`
+- Create new export formats in `FieldDefinitionExporter.cs`
+- Add new UI features in the Forms directory
 
 ## License
 
-This project is licensed under the MIT License.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+This project is provided as-is for educational and development purposes.
 
 ## Support
 
 For issues and questions:
-1. Check the troubleshooting section
-2. Review application logs
-3. Create an issue in the repository 
+1. Check the validation messages in the application
+2. Review the generated control file syntax
+3. Consult Oracle SQL*Loader documentation
+4. Check the COBOL to Oracle mapping guide included with the application 
