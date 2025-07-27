@@ -393,23 +393,37 @@ namespace ControlFileGenerator.WinForms.Services
             if (duplicates.Any())
                 errors.Add($"Duplicate field name: {field.FieldName}");
 
-            // Check position conflicts
-            if (field.StartPosition.HasValue && field.EndPosition.HasValue)
+            // Handle virtual fields differently
+            if (field.IsVirtual)
             {
-                if (field.StartPosition > field.EndPosition)
-                    errors.Add($"Start position ({field.StartPosition}) cannot be greater than end position ({field.EndPosition})");
-
-                // Check for overlapping positions
-                var overlaps = allFields.Where(f => f != field && 
-                    f.StartPosition.HasValue && f.EndPosition.HasValue &&
-                    !(field.EndPosition < f.StartPosition || field.StartPosition > f.EndPosition));
-                if (overlaps.Any())
-                    errors.Add($"Position overlaps with field(s): {string.Join(", ", overlaps.Select(f => f.FieldName))}");
+                // Virtual fields don't need position validation
+                // But they need either Default Value or Transform
+                if (string.IsNullOrEmpty(field.DefaultValue) && string.IsNullOrEmpty(field.Transform))
+                {
+                    errors.Add($"Virtual field '{field.FieldName}' must have either a Default Value or Transform expression");
+                }
             }
+            else
+            {
+                // Non-virtual fields need position validation
+                // Check position conflicts
+                if (field.StartPosition.HasValue && field.EndPosition.HasValue)
+                {
+                    if (field.StartPosition > field.EndPosition)
+                        errors.Add($"Start position ({field.StartPosition}) cannot be greater than end position ({field.EndPosition})");
 
-            // Check length validity
-            if (field.Length.HasValue && field.Length <= 0)
-                errors.Add("Length must be greater than 0");
+                    // Check for overlapping positions (only with non-virtual fields)
+                    var overlaps = allFields.Where(f => f != field && !f.IsVirtual &&
+                        f.StartPosition.HasValue && f.EndPosition.HasValue &&
+                        !(field.EndPosition < f.StartPosition || field.StartPosition > f.EndPosition));
+                    if (overlaps.Any())
+                        errors.Add($"Position overlaps with field(s): {string.Join(", ", overlaps.Select(f => f.FieldName))}");
+                }
+
+                // Check length validity
+                if (field.Length.HasValue && field.Length <= 0)
+                    errors.Add("Length must be greater than 0");
+            }
 
             // Check data type validity
             if (!string.IsNullOrEmpty(field.SqlType))

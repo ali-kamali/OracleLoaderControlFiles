@@ -66,9 +66,9 @@ namespace ControlFileGenerator.WinForms.Services
         {
             var errors = new List<string>();
 
-            // Get fields with positions
+            // Get fields with positions (exclude virtual fields)
             var positionedFields = fieldDefinitions
-                .Where(f => f.StartPosition.HasValue && f.EndPosition.HasValue)
+                .Where(f => !f.IsVirtual && f.StartPosition.HasValue && f.EndPosition.HasValue)
                 .OrderBy(f => f.StartPosition)
                 .ToList();
 
@@ -133,6 +133,10 @@ namespace ControlFileGenerator.WinForms.Services
         {
             foreach (var field in fieldDefinitions)
             {
+                // Skip virtual fields for position calculations
+                if (field.IsVirtual)
+                    continue;
+
                 if (!field.Length.HasValue && field.StartPosition.HasValue && field.EndPosition.HasValue)
                 {
                     field.Length = field.EndPosition.Value - field.StartPosition.Value + 1;
@@ -146,7 +150,7 @@ namespace ControlFileGenerator.WinForms.Services
         private void FixPositionOverlaps(List<FieldDefinition> fieldDefinitions)
         {
             var positionedFields = fieldDefinitions
-                .Where(f => f.StartPosition.HasValue && f.EndPosition.HasValue)
+                .Where(f => !f.IsVirtual && f.StartPosition.HasValue && f.EndPosition.HasValue)
                 .OrderBy(f => f.StartPosition)
                 .ToList();
 

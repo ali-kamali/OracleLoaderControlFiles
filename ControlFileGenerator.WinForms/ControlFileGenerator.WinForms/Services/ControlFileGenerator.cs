@@ -144,6 +144,29 @@ namespace ControlFileGenerator.WinForms.Services
             // Field name (always uppercase for Oracle)
             parts.Add($"  {field.FieldName.ToUpper()}");
 
+            // Handle virtual fields
+            if (field.IsVirtual)
+            {
+                var virtualExpression = field.GetVirtualFieldExpression();
+                if (!string.IsNullOrEmpty(virtualExpression))
+                {
+                    parts.Add(virtualExpression);
+                }
+                return string.Join(" ", parts);
+            }
+
+            // Handle FILLER fields with position and length
+            if (field.FieldName.ToUpper().StartsWith("FILLER") && isFixedWidth)
+            {
+                var position = field.GetPositionString();
+                if (!string.IsNullOrEmpty(position))
+                {
+                    parts.Add(position);
+                }
+                parts.Add("FILLER");
+                return string.Join(" ", parts);
+            }
+
             // Position specification for fixed-width
             if (isFixedWidth)
             {

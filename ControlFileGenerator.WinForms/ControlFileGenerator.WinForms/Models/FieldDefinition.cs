@@ -8,6 +8,9 @@ namespace ControlFileGenerator.WinForms.Models
         [DisplayName("Field Name")]
         public string FieldName { get; set; } = string.Empty;
 
+        [DisplayName("Virtual Field")]
+        public bool IsVirtual { get; set; } = false;
+
         [DisplayName("Order")]
         public int? Order { get; set; }
 
@@ -55,6 +58,12 @@ namespace ControlFileGenerator.WinForms.Models
         /// </summary>
         public string GetPositionString()
         {
+            // Virtual fields don't need position information
+            if (IsVirtual)
+            {
+                return string.Empty;
+            }
+
             if (StartPosition.HasValue && EndPosition.HasValue)
             {
                 return $"POSITION({StartPosition}:{EndPosition})";
@@ -279,6 +288,31 @@ namespace ControlFileGenerator.WinForms.Models
         }
 
         /// <summary>
+        /// Gets the virtual field expression (CONSTANT or SQL expression)
+        /// </summary>
+        public string GetVirtualFieldExpression()
+        {
+            if (!IsVirtual)
+            {
+                return string.Empty;
+            }
+
+            // If Default Value is provided, use CONSTANT
+            if (!string.IsNullOrEmpty(DefaultValue))
+            {
+                return $"CONSTANT '{DefaultValue}'";
+            }
+
+            // If Transform is provided, use SQL expression
+            if (!string.IsNullOrEmpty(Transform))
+            {
+                return $"\"{Transform}\"";
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
         /// Creates a deep copy of the FieldDefinition
         /// </summary>
         public FieldDefinition Clone()
@@ -286,6 +320,7 @@ namespace ControlFileGenerator.WinForms.Models
             return new FieldDefinition
             {
                 FieldName = this.FieldName,
+                IsVirtual = this.IsVirtual,
                 Order = this.Order,
                 StartPosition = this.StartPosition,
                 EndPosition = this.EndPosition,

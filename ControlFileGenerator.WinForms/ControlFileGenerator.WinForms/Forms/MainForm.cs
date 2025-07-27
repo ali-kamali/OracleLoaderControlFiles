@@ -65,6 +65,7 @@ namespace ControlFileGenerator.WinForms.Forms
             dgvFields.CellValueChanged += DgvFields_CellValueChanged;
             dgvFields.RowPrePaint += DgvFields_RowPrePaint;
             dgvFields.SelectionChanged += DgvFields_SelectionChanged;
+            dgvFields.CellClick += DgvFields_CellClick;
             
             // Enable/disable buttons based on state
             UpdateButtonStates();
@@ -130,6 +131,16 @@ namespace ControlFileGenerator.WinForms.Forms
                 ToolTipText = "Enter the Oracle column name (required)"
             };
             dgvFields.Columns.Add(fieldNameColumn);
+
+            // Is Virtual Column (CheckBox)
+            var isVirtualColumn = new DataGridViewCheckBoxColumn
+            {
+                DataPropertyName = "IsVirtual",
+                HeaderText = "Virtual",
+                Width = 60,
+                ToolTipText = "Check if this is a virtual field that doesn't exist in the original data file"
+            };
+            dgvFields.Columns.Add(isVirtualColumn);
 
             // Order Column
             var orderColumn = new DataGridViewTextBoxColumn
@@ -831,7 +842,73 @@ namespace ControlFileGenerator.WinForms.Forms
                 SetColumnReadOnly("EnclosedBy", false);
             }
             
+            // Update virtual field column states
+            UpdateVirtualFieldColumnStates();
+            
             RefreshDataGridView();
+        }
+
+        private void UpdateVirtualFieldColumnStates()
+        {
+            // Update column states based on virtual field status
+            for (int i = 0; i < dgvFields.Rows.Count; i++)
+            {
+                if (IsValidRowIndex(i))
+                {
+                    var field = _fieldDefinitions[i];
+                    UpdateRowColumnStates(i, field.IsVirtual);
+                }
+            }
+        }
+
+        private void UpdateRowColumnStates(int rowIndex, bool isVirtual)
+        {
+            if (!IsValidRowIndex(rowIndex))
+                return;
+
+            // For virtual fields, disable position and delimiter columns
+            if (isVirtual)
+            {
+                SetCellReadOnly(rowIndex, "StartPosition", true);
+                SetCellReadOnly(rowIndex, "EndPosition", true);
+                SetCellReadOnly(rowIndex, "Length", true);
+                SetCellReadOnly(rowIndex, "Order", true);
+                SetCellReadOnly(rowIndex, "Delimiter", true);
+                SetCellReadOnly(rowIndex, "EnclosedBy", true);
+            }
+            else
+            {
+                // For non-virtual fields, restore normal column states based on mode
+                if (_isFixedWidthMode)
+                {
+                    SetCellReadOnly(rowIndex, "StartPosition", false);
+                    SetCellReadOnly(rowIndex, "EndPosition", false);
+                    SetCellReadOnly(rowIndex, "Length", false);
+                    SetCellReadOnly(rowIndex, "Order", false);
+                    SetCellReadOnly(rowIndex, "Delimiter", true);
+                    SetCellReadOnly(rowIndex, "EnclosedBy", true);
+                }
+                else
+                {
+                    SetCellReadOnly(rowIndex, "StartPosition", true);
+                    SetCellReadOnly(rowIndex, "EndPosition", true);
+                    SetCellReadOnly(rowIndex, "Length", true);
+                    SetCellReadOnly(rowIndex, "Order", true);
+                    SetCellReadOnly(rowIndex, "Delimiter", false);
+                    SetCellReadOnly(rowIndex, "EnclosedBy", false);
+                }
+            }
+        }
+
+        private void SetCellReadOnly(int rowIndex, string columnName, bool readOnly)
+        {
+            var column = dgvFields.Columns.Cast<DataGridViewColumn>()
+                .FirstOrDefault(c => c.DataPropertyName == columnName);
+            
+            if (column != null && IsValidCellIndex(rowIndex, column.Index))
+            {
+                dgvFields.Rows[rowIndex].Cells[column.Index].ReadOnly = readOnly;
+            }
         }
 
         private void SetColumnVisibility(string columnName, bool visible)
@@ -863,7 +940,7 @@ namespace ControlFileGenerator.WinForms.Forms
                 // Fixed-width validation: Check positions, overlaps, etc.
                 var positionErrors = EdgeCaseHandler.EdgeCaseGuidelines.DetectOverlappingPositions(_fieldDefinitions);
                 var missingPositionErrors = _fieldDefinitions
-                    .Where(f => !f.StartPosition.HasValue && !f.Length.HasValue)
+                    .Where(f => !f.IsVirtual && !f.StartPosition.HasValue && !f.Length.HasValue)
                     .Select(f => $"Field '{f.FieldName}' missing start position or length")
                     .ToList();
                 
@@ -886,9 +963,15 @@ namespace ControlFileGenerator.WinForms.Forms
                     .Select(f => $"Field at position {f.Order} has empty name")
                     .ToList();
                 
-                if (duplicateErrors.Any() || emptyNameErrors.Any())
+                // Check virtual fields for missing Default Value or Transform
+                var virtualFieldErrors = _fieldDefinitions
+                    .Where(f => f.IsVirtual && string.IsNullOrEmpty(f.DefaultValue) && string.IsNullOrEmpty(f.Transform))
+                    .Select(f => $"Virtual field '{f.FieldName}' must have either Default Value or Transform")
+                    .ToList();
+                
+                if (duplicateErrors.Any() || emptyNameErrors.Any() || virtualFieldErrors.Any())
                 {
-                    var allErrors = duplicateErrors.Concat(emptyNameErrors).ToList();
+                    var allErrors = duplicateErrors.Concat(emptyNameErrors).Concat(virtualFieldErrors).ToList();
                     UpdateStatusMessage($"CSV validation: {allErrors.Count} issue(s) found");
                 }
                 else
@@ -1206,6 +1289,60 @@ namespace ControlFileGenerator.WinForms.Forms
         private void DgvFields_SelectionChanged(object sender, EventArgs e)
         {
             UpdateButtonStates();
+        }
+
+        private void DgvFields_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            // Handle virtual field checkbox changes
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                var column = dgvFields.Columns[e.ColumnIndex];
+                if (column.DataPropertyName == "IsVirtual")
+                {
+                    // Toggle the virtual field state
+                    if (IsValidRowIndex(e.RowIndex))
+                    {
+                        var field = _fieldDefinitions[e.RowIndex];
+                        field.IsVirtual = !field.IsVirtual;
+                        
+                        // Update UI based on virtual field state
+                        UpdateRowForVirtualField(e.RowIndex, field.IsVirtual);
+                        
+                        // Refresh the grid to show changes
+                        dgvFields.Refresh();
+                    }
+                }
+            }
+        }
+
+        private void UpdateRowForVirtualField(int rowIndex, bool isVirtual)
+        {
+            if (!IsValidRowIndex(rowIndex))
+                return;
+
+            var field = _fieldDefinitions[rowIndex];
+            
+            if (isVirtual)
+            {
+                // For virtual fields, clear position-related fields
+                field.StartPosition = null;
+                field.EndPosition = null;
+                field.Length = null;
+                field.Order = null;
+                field.Delimiter = string.Empty;
+                
+                // Set default SQL type if not specified
+                if (string.IsNullOrEmpty(field.SqlType))
+                {
+                    field.SqlType = "CHAR";
+                }
+            }
+            
+            // Update column states for this row
+            UpdateRowColumnStates(rowIndex, isVirtual);
+            
+            // Update the grid to reflect changes
+            RefreshDataGridView();
         }
 
         private void DgvFields_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
