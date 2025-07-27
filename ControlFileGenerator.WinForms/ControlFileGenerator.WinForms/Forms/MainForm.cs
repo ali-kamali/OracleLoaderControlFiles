@@ -493,7 +493,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Failed to load configuration", ex);
+                _loggingService.LogError("Failed to load configuration", ex);
                 _loaderConfig = new LoaderConfig();
                 _fieldDefinitions = new List<FieldDefinition>();
                 
@@ -505,7 +505,7 @@ namespace ControlFileGenerator.WinForms.Forms
                 }
                 catch (Exception fallbackEx)
                 {
-                    _loggingService.Error("Error in fallback configuration loading", fallbackEx);
+                    _loggingService.LogError("Error in fallback configuration loading", fallbackEx);
                 }
                 
                 UpdateStatusMessage("Failed to load configuration. Using defaults.");
@@ -530,7 +530,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error loading Excel file", ex);
+                _loggingService.LogError("Error loading Excel file", ex);
                 MessageBox.Show($"Error loading Excel file: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -559,7 +559,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error($"Error loading Excel file: {filePath}", ex);
+                _loggingService.LogError($"Error loading Excel file: {filePath}", ex);
                 UpdateStatusMessage($"Error loading Excel file: {ex.Message}");
                 MessageBox.Show($"Error loading Excel file: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -589,7 +589,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error($"Error loading sheet data: {sheetName}", ex);
+                _loggingService.LogError($"Error loading sheet data: {sheetName}", ex);
                 UpdateStatusMessage($"Error loading sheet data: {ex.Message}");
                 MessageBox.Show($"Error loading sheet data: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -637,7 +637,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error refreshing DataGridView", ex);
+                _loggingService.LogError("Error refreshing DataGridView", ex);
                 // Fallback: create empty data source
                 try
                 {
@@ -645,7 +645,7 @@ namespace ControlFileGenerator.WinForms.Forms
                 }
                 catch (Exception fallbackEx)
                 {
-                    _loggingService.Error("Error in fallback DataGridView refresh", fallbackEx);
+                    _loggingService.LogError("Error in fallback DataGridView refresh", fallbackEx);
                 }
             }
         }
@@ -667,7 +667,7 @@ namespace ControlFileGenerator.WinForms.Forms
                 }
                 catch (Exception ex)
                 {
-                    _loggingService.Error("Error handling cell value change", ex);
+                    _loggingService.LogError("Error handling cell value change", ex);
                     UpdateStatusMessage("Error applying validation");
                 }
             }
@@ -694,7 +694,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error starting from scratch", ex);
+                _loggingService.LogError("Error starting from scratch", ex);
                 MessageBox.Show($"Error starting from scratch: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -717,7 +717,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error adding field", ex);
+                _loggingService.LogError("Error adding field", ex);
                 MessageBox.Show($"Error adding field: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -756,7 +756,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error removing field", ex);
+                _loggingService.LogError("Error removing field", ex);
                 MessageBox.Show($"Error removing field: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -788,7 +788,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error toggling mode", ex);
+                _loggingService.LogError("Error toggling mode", ex);
                 MessageBox.Show($"Error toggling mode: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -991,12 +991,12 @@ namespace ControlFileGenerator.WinForms.Forms
                     var previewContent = _controlFileGenerator.GenerateControlFile(_fieldDefinitions, _loaderConfig, _isFixedWidthMode);
                     // Note: This would update the preview form if it's open
                     // For now, we'll just log that preview should be updated
-                    _loggingService.Info("Preview should be updated with new mode");
+                    _loggingService.LogInformation("Preview should be updated with new mode");
                 }
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error updating preview", ex);
+                _loggingService.LogError("Error updating preview", ex);
             }
         }
 
@@ -1051,7 +1051,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error during validation", ex);
+                _loggingService.LogError("Error during validation", ex);
                 MessageBox.Show($"Error during validation: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1069,7 +1069,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error during auto-fix", ex);
+                _loggingService.LogError("Error during auto-fix", ex);
                 MessageBox.Show($"Error during auto-fix: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1103,7 +1103,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error saving field definitions", ex);
+                _loggingService.LogError("Error saving field definitions", ex);
                 MessageBox.Show($"Error saving field definitions: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1132,7 +1132,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error loading field definitions", ex);
+                _loggingService.LogError("Error loading field definitions", ex);
                 MessageBox.Show($"Error loading field definitions: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1154,7 +1154,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error opening settings form", ex);
+                _loggingService.LogError("Error opening settings form", ex);
                 MessageBox.Show($"Error opening settings: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1178,7 +1178,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error generating preview", ex);
+                _loggingService.LogError("Error generating preview", ex);
                 MessageBox.Show($"Error generating preview: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1214,7 +1214,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error exporting control file", ex);
+                _loggingService.LogError("Error exporting control file", ex);
                 MessageBox.Show($"Error exporting control file: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1267,7 +1267,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error opening data preview", ex);
+                _loggingService.LogError("Error opening data preview", ex);
                 MessageBox.Show($"Error opening data preview: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -1276,14 +1276,14 @@ namespace ControlFileGenerator.WinForms.Forms
         private void UpdateStatusMessage(string message)
         {
             lblStatus.Text = message;
-            _loggingService.Info(message);
+            _loggingService.LogInformation(message);
         }
 
         private void UpdateModeDisplay()
         {
             lblMode.Text = _isFixedWidthMode ? "Fixed Width" : "CSV/Delimited";
             lblMode.ForeColor = _isFixedWidthMode ? Color.DarkBlue : Color.DarkGreen;
-            _loggingService.Info($"Current Mode: {(_isFixedWidthMode ? "Fixed-Width" : "CSV")}");
+            _loggingService.LogInformation($"Current Mode: {(_isFixedWidthMode ? "Fixed-Width" : "CSV")}");
         }
 
         private void DgvFields_SelectionChanged(object sender, EventArgs e)
@@ -1413,7 +1413,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error($"Error in CellToolTipTextNeeded for cell ({e.RowIndex}, {e.ColumnIndex})", ex);
+                _loggingService.LogError($"Error in CellToolTipTextNeeded for cell ({e.RowIndex}, {e.ColumnIndex})", ex);
             }
         }
 
@@ -1461,7 +1461,7 @@ namespace ControlFileGenerator.WinForms.Forms
                 }
                 catch (Exception ex)
                 {
-                    _loggingService.Error($"Error in CellDoubleClick for cell ({e.RowIndex}, {e.ColumnIndex})", ex);
+                    _loggingService.LogError($"Error in CellDoubleClick for cell ({e.RowIndex}, {e.ColumnIndex})", ex);
                 }
             }
         }
@@ -1632,7 +1632,7 @@ namespace ControlFileGenerator.WinForms.Forms
             e.ThrowException = false; // Prevent the default error dialog
             
             // Log the error for debugging
-            _loggingService.Warning($"DataGridView data error at row {e.RowIndex}, column {e.ColumnIndex}: {e.Exception?.Message}");
+            _loggingService.LogWarning($"DataGridView data error at row {e.RowIndex}, column {e.ColumnIndex}: {e.Exception?.Message}");
             
             // Optionally show a user-friendly message
             if (e.Context == DataGridViewDataErrorContexts.Commit)
@@ -1655,7 +1655,7 @@ namespace ControlFileGenerator.WinForms.Forms
                     }
                     catch (Exception ex)
                     {
-                        _loggingService.Error("Error in DataGridView operation", ex);
+                        _loggingService.LogError("Error in DataGridView operation", ex);
                         // Refresh the grid to recover from binding issues
                         RefreshDataGridView();
                     }
@@ -1667,7 +1667,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error in SafeDataGridViewOperation", ex);
+                _loggingService.LogError("Error in SafeDataGridViewOperation", ex);
                 dgvFields.ResumeLayout();
             }
         }
@@ -1713,7 +1713,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error($"Error in RowPrePaint for row {e.RowIndex}", ex);
+                _loggingService.LogError($"Error in RowPrePaint for row {e.RowIndex}", ex);
             }
         }
 
@@ -1727,7 +1727,7 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error saving configuration on exit", ex);
+                _loggingService.LogError("Error saving configuration on exit", ex);
             }
             
             base.OnFormClosing(e);

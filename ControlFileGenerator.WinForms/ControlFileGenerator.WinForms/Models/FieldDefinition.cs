@@ -64,31 +64,191 @@ namespace ControlFileGenerator.WinForms.Models
                 return string.Empty;
             }
 
+            // Case 1: Both start and end positions are specified
             if (StartPosition.HasValue && EndPosition.HasValue)
             {
                 return $"POSITION({StartPosition}:{EndPosition})";
             }
+            
+            // Case 2: Start position and length are specified
             else if (StartPosition.HasValue && Length.HasValue)
             {
-                return $"POSITION({StartPosition}:{StartPosition + Length - 1})";
-            }
-            else if (Order.HasValue && Length.HasValue)
-            {
-                // Calculate position based on order and previous fields
-                return $"POSITION({GetCalculatedStartPosition()}:{GetCalculatedStartPosition() + Length - 1})";
+                var calculatedEndPosition = StartPosition.Value + Length.Value - 1;
+                return $"POSITION({StartPosition}:{calculatedEndPosition})";
             }
             
+            // Case 3: Only length is specified (for delimited files)
+            else if (Length.HasValue && !StartPosition.HasValue && !EndPosition.HasValue)
+            {
+                return string.Empty; // Delimited files don't use POSITION
+            }
+            
+            // Case 4: Order and length are specified (for auto-calculation)
+            else if (Order.HasValue && Length.HasValue)
+            {
+                var calculatedStartPosition = GetCalculatedStartPosition(); // Note: This will use fallback logic
+                var calculatedEndPosition = calculatedStartPosition + Length.Value - 1;
+                return $"POSITION({calculatedStartPosition}:{calculatedEndPosition})";
+            }
+            
+            // Case 5: No position information available
             return string.Empty;
         }
 
         /// <summary>
-        /// Gets the calculated start position based on order
+        /// Gets the calculated start position based on order and previous fields
+        /// This method requires the complete list of fields to calculate properly
         /// </summary>
-        private int GetCalculatedStartPosition()
+        public int GetCalculatedStartPosition(List<FieldDefinition>? allFields = null)
         {
-            // This would need to be calculated based on previous fields
-            // For now, return a placeholder
-            return Order ?? 1;
+            // If we have explicit start position, use it
+            if (StartPosition.HasValue)
+            {
+                return StartPosition.Value;
+            }
+
+            // If no order specified, default to position 1
+            if (!Order.HasValue)
+            {
+                return 1;
+            }
+
+            // If no field list provided, we can't calculate based on previous fields
+            if (allFields == null || allFields.Count == 0)
+            {
+                return Order.Value;
+            }
+
+            // Calculate position based on previous fields
+            var previousFields = allFields
+                .Where(f => !f.IsVirtual && f.Order.HasValue && f.Order < Order.Value)
+                .OrderBy(f => f.Order)
+                .ToList();
+
+            if (previousFields.Count == 0)
+            {
+                return 1; // First field starts at position 1
+            }
+
+            // Find the end position of the last previous field
+            var lastPreviousField = previousFields.Last();
+            var lastEndPosition = GetFieldEndPosition(lastPreviousField);
+            
+            return lastEndPosition + 1;
+        }
+
+        /// <summary>
+        /// Gets the end position of a field, calculating it if necessary
+        /// </summary>
+        private int GetFieldEndPosition(FieldDefinition field)
+        {
+            // If end position is explicitly set, use it
+            if (field.EndPosition.HasValue)
+            {
+                return field.EndPosition.Value;
+            }
+
+            // If start position and length are set, calculate end position
+            if (field.StartPosition.HasValue && field.Length.HasValue)
+            {
+                return field.StartPosition.Value + field.Length.Value - 1;
+            }
+
+            // If only length is set, try to infer from COBOL type
+            if (field.Length.HasValue)
+            {
+                return field.Length.Value; // Assume it starts at position 1 if no start position
+            }
+
+            // Try to calculate length from COBOL type
+            var inferredLength = CalculateLengthFromCobolType(field.CobolType);
+            if (inferredLength > 0)
+            {
+                return inferredLength; // Assume it starts at position 1
+            }
+
+            // Default fallback
+            return 1;
+        }
+
+        /// <summary>
+        /// Calculates field length from COBOL type definition
+        /// </summary>
+        public int CalculateLengthFromCobolType(string cobolType)
+        {
+            if (string.IsNullOrWhiteSpace(cobolType))
+                return 0;
+
+            var normalizedType = cobolType.Trim().ToUpper();
+            
+            // Handle PIC X(n) - Character fields
+            var xMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+X\((\d+)\)");
+            if (xMatch.Success && int.TryParse(xMatch.Groups[1].Value, out int xLength))
+            {
+                return xLength;
+            }
+
+            // Handle PIC X - Single character
+            if (normalizedType == "PIC X")
+            {
+                return 1;
+            }
+
+            // Handle PIC 9(n) - Numeric fields
+            var nineMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+9\((\d+)\)");
+            if (nineMatch.Success && int.TryParse(nineMatch.Groups[1].Value, out int nineLength))
+            {
+                return nineLength;
+            }
+
+            // Handle PIC 9 - Single digit
+            if (normalizedType == "PIC 9")
+            {
+                return 1;
+            }
+
+            // Handle PIC S9(n) - Signed numeric fields
+            var sNineMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+S9\((\d+)\)");
+            if (sNineMatch.Success && int.TryParse(sNineMatch.Groups[1].Value, out int sNineLength))
+            {
+                return sNineLength;
+            }
+
+            // Handle PIC S9 - Signed single digit
+            if (normalizedType == "PIC S9")
+            {
+                return 1;
+            }
+
+            // Handle decimal types like PIC 9(n)V99
+            var decimalMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+[S]?9\((\d+)\)V(\d+)");
+            if (decimalMatch.Success && int.TryParse(decimalMatch.Groups[1].Value, out int wholeDigits))
+            {
+                return wholeDigits; // Return whole digits part
+            }
+
+            // Handle simple decimal types like PIC 9V99
+            var simpleDecimalMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+[S]?9V(\d+)");
+            if (simpleDecimalMatch.Success)
+            {
+                return 1; // Single digit before decimal
+            }
+
+            // Handle date formats
+            if (normalizedType.Contains("PIC 9(8)"))
+            {
+                return 8; // YYYYMMDD format
+            }
+            if (normalizedType.Contains("PIC 9(6)"))
+            {
+                return 6; // YYMMDD format
+            }
+            if (normalizedType.Contains("PIC 9(7)"))
+            {
+                return 7; // YYYYDDD (Julian) format
+            }
+
+            return 0; // Unknown type
         }
 
         /// <summary>
@@ -96,139 +256,20 @@ namespace ControlFileGenerator.WinForms.Models
         /// </summary>
         public string GetOracleDataType()
         {
+            // Use explicit SQL type if provided
             if (!string.IsNullOrEmpty(SqlType))
             {
                 return SqlType.ToUpper();
             }
 
-            // Infer from COBOL type if available
+            // Infer from COBOL type using the centralized mapper
             if (!string.IsNullOrEmpty(CobolType))
             {
-                return InferOracleTypeFromCobol(CobolType);
+                return CobolTypeMapper.MapCobolToOracle(CobolType);
             }
 
             // Default to CHAR if no type information
             return "CHAR";
-        }
-
-        /// <summary>
-        /// Infers Oracle data type from COBOL type
-        /// </summary>
-        private string InferOracleTypeFromCobol(string cobolType)
-        {
-            return cobolType.ToUpper() switch
-            {
-                "PIC X" or "PIC A" => "CHAR",
-                "PIC 9" => "NUMBER",
-                "PIC S9" => "NUMBER",
-                "PIC 9V99" => "NUMBER",
-                "PIC S9V99" => "NUMBER",
-                "PIC 9(5)" => "NUMBER",
-                "PIC S9(5)" => "NUMBER",
-                "PIC 9(10)" => "NUMBER",
-                "PIC S9(10)" => "NUMBER",
-                "PIC 9(15)" => "NUMBER",
-                "PIC S9(15)" => "NUMBER",
-                "PIC 9(3)V99" => "NUMBER",
-                "PIC S9(3)V99" => "NUMBER",
-                "PIC 9(5)V99" => "NUMBER",
-                "PIC S9(5)V99" => "NUMBER",
-                "PIC 9(7)V99" => "NUMBER",
-                "PIC S9(7)V99" => "NUMBER",
-                "PIC 9(9)V99" => "NUMBER",
-                "PIC S9(9)V99" => "NUMBER",
-                "PIC 9(11)V99" => "NUMBER",
-                "PIC S9(11)V99" => "NUMBER",
-                "PIC 9(13)V99" => "NUMBER",
-                "PIC S9(13)V99" => "NUMBER",
-                "PIC 9(15)V99" => "NUMBER",
-                "PIC S9(15)V99" => "NUMBER",
-                "PIC 9(17)V99" => "NUMBER",
-                "PIC S9(17)V99" => "NUMBER",
-                "PIC 9(19)V99" => "NUMBER",
-                "PIC S9(19)V99" => "NUMBER",
-                "PIC 9(21)V99" => "NUMBER",
-                "PIC S9(21)V99" => "NUMBER",
-                "PIC 9(23)V99" => "NUMBER",
-                "PIC S9(23)V99" => "NUMBER",
-                "PIC 9(25)V99" => "NUMBER",
-                "PIC S9(25)V99" => "NUMBER",
-                "PIC 9(27)V99" => "NUMBER",
-                "PIC S9(27)V99" => "NUMBER",
-                "PIC 9(29)V99" => "NUMBER",
-                "PIC S9(29)V99" => "NUMBER",
-                "PIC 9(31)V99" => "NUMBER",
-                "PIC S9(31)V99" => "NUMBER",
-                "PIC 9(33)V99" => "NUMBER",
-                "PIC S9(33)V99" => "NUMBER",
-                "PIC 9(35)V99" => "NUMBER",
-                "PIC S9(35)V99" => "NUMBER",
-                "PIC 9(37)V99" => "NUMBER",
-                "PIC S9(37)V99" => "NUMBER",
-                "PIC 9(39)V99" => "NUMBER",
-                "PIC S9(39)V99" => "NUMBER",
-                "PIC 9(41)V99" => "NUMBER",
-                "PIC S9(41)V99" => "NUMBER",
-                "PIC 9(43)V99" => "NUMBER",
-                "PIC S9(43)V99" => "NUMBER",
-                "PIC 9(45)V99" => "NUMBER",
-                "PIC S9(45)V99" => "NUMBER",
-                "PIC 9(47)V99" => "NUMBER",
-                "PIC S9(47)V99" => "NUMBER",
-                "PIC 9(49)V99" => "NUMBER",
-                "PIC S9(49)V99" => "NUMBER",
-                "PIC 9(51)V99" => "NUMBER",
-                "PIC S9(51)V99" => "NUMBER",
-                "PIC 9(53)V99" => "NUMBER",
-                "PIC S9(53)V99" => "NUMBER",
-                "PIC 9(55)V99" => "NUMBER",
-                "PIC S9(55)V99" => "NUMBER",
-                "PIC 9(57)V99" => "NUMBER",
-                "PIC S9(57)V99" => "NUMBER",
-                "PIC 9(59)V99" => "NUMBER",
-                "PIC S9(59)V99" => "NUMBER",
-                "PIC 9(61)V99" => "NUMBER",
-                "PIC S9(61)V99" => "NUMBER",
-                "PIC 9(63)V99" => "NUMBER",
-                "PIC S9(63)V99" => "NUMBER",
-                "PIC 9(65)V99" => "NUMBER",
-                "PIC S9(65)V99" => "NUMBER",
-                "PIC 9(67)V99" => "NUMBER",
-                "PIC S9(67)V99" => "NUMBER",
-                "PIC 9(69)V99" => "NUMBER",
-                "PIC S9(69)V99" => "NUMBER",
-                "PIC 9(71)V99" => "NUMBER",
-                "PIC S9(71)V99" => "NUMBER",
-                "PIC 9(73)V99" => "NUMBER",
-                "PIC S9(73)V99" => "NUMBER",
-                "PIC 9(75)V99" => "NUMBER",
-                "PIC S9(75)V99" => "NUMBER",
-                "PIC 9(77)V99" => "NUMBER",
-                "PIC S9(77)V99" => "NUMBER",
-                "PIC 9(79)V99" => "NUMBER",
-                "PIC S9(79)V99" => "NUMBER",
-                "PIC 9(81)V99" => "NUMBER",
-                "PIC S9(81)V99" => "NUMBER",
-                "PIC 9(83)V99" => "NUMBER",
-                "PIC S9(83)V99" => "NUMBER",
-                "PIC 9(85)V99" => "NUMBER",
-                "PIC S9(85)V99" => "NUMBER",
-                "PIC 9(87)V99" => "NUMBER",
-                "PIC S9(87)V99" => "NUMBER",
-                "PIC 9(89)V99" => "NUMBER",
-                "PIC S9(89)V99" => "NUMBER",
-                "PIC 9(91)V99" => "NUMBER",
-                "PIC S9(91)V99" => "NUMBER",
-                "PIC 9(93)V99" => "NUMBER",
-                "PIC S9(93)V99" => "NUMBER",
-                "PIC 9(95)V99" => "NUMBER",
-                "PIC S9(95)V99" => "NUMBER",
-                "PIC 9(97)V99" => "NUMBER",
-                "PIC S9(97)V99" => "NUMBER",
-                "PIC 9(99)V99" => "NUMBER",
-                "PIC S9(99)V99" => "NUMBER",
-                _ => "CHAR"
-            };
         }
 
         /// <summary>
@@ -313,6 +354,134 @@ namespace ControlFileGenerator.WinForms.Models
         }
 
         /// <summary>
+        /// Validates the field definition and returns validation errors
+        /// </summary>
+        public List<string> Validate(List<FieldDefinition>? allFields = null)
+        {
+            var errors = new List<string>();
+
+            // Validate field name
+            if (string.IsNullOrWhiteSpace(FieldName))
+            {
+                errors.Add("Field name is required");
+            }
+            else if (FieldName.Length > 30)
+            {
+                errors.Add("Field name cannot exceed 30 characters");
+            }
+            else if (!System.Text.RegularExpressions.Regex.IsMatch(FieldName, @"^[A-Za-z_][A-Za-z0-9_]*$"))
+            {
+                errors.Add("Field name must start with a letter or underscore and contain only letters, numbers, and underscores");
+            }
+
+            // Validate virtual field logic
+            if (IsVirtual)
+            {
+                // Virtual fields don't need positions
+                if (StartPosition.HasValue || EndPosition.HasValue)
+                {
+                    errors.Add("Virtual fields should not have explicit positions");
+                }
+            }
+            else
+            {
+                // Non-virtual fields need some form of positioning
+                if (!StartPosition.HasValue && !EndPosition.HasValue && !Length.HasValue && !Order.HasValue)
+                {
+                    errors.Add("Non-virtual fields must have either positions, length, or order specified");
+                }
+            }
+
+            // Validate position consistency
+            if (StartPosition.HasValue && EndPosition.HasValue)
+            {
+                if (StartPosition.Value > EndPosition.Value)
+                {
+                    errors.Add("Start position cannot be greater than end position");
+                }
+            }
+
+            // Validate length consistency
+            if (StartPosition.HasValue && EndPosition.HasValue && Length.HasValue)
+            {
+                var calculatedLength = EndPosition.Value - StartPosition.Value + 1;
+                if (calculatedLength != Length.Value)
+                {
+                    errors.Add($"Length ({Length.Value}) does not match position range ({StartPosition.Value}-{EndPosition.Value})");
+                }
+            }
+
+            // Validate order consistency
+            if (Order.HasValue && Order.Value <= 0)
+            {
+                errors.Add("Order must be a positive integer");
+            }
+
+            // Validate SQL type
+            if (!string.IsNullOrEmpty(SqlType))
+            {
+                var validTypes = new[] { "CHAR", "VARCHAR2", "NUMBER", "DATE", "TIMESTAMP", "CLOB", "BLOB", "RAW", "LONG", "LONG RAW" };
+                var isValidType = validTypes.Any(t => SqlType.ToUpper().StartsWith(t));
+                if (!isValidType)
+                {
+                    errors.Add($"Invalid SQL type: {SqlType}");
+                }
+            }
+
+            // Validate nullable value
+            if (!string.IsNullOrEmpty(Nullable))
+            {
+                var normalizedNullable = Nullable.ToUpper();
+                if (normalizedNullable != "YES" && normalizedNullable != "NO")
+                {
+                    errors.Add("Nullable must be 'YES' or 'NO'");
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Auto-calculates missing properties based on available information
+        /// </summary>
+        public void AutoCalculateMissingProperties(List<FieldDefinition>? allFields = null)
+        {
+            // Skip virtual fields
+            if (IsVirtual)
+                return;
+
+            // Calculate length from COBOL type if not specified
+            if (!Length.HasValue && !string.IsNullOrEmpty(CobolType))
+            {
+                Length = CalculateLengthFromCobolType(CobolType);
+            }
+
+            // Calculate end position from start position and length
+            if (StartPosition.HasValue && Length.HasValue && !EndPosition.HasValue)
+            {
+                EndPosition = StartPosition.Value + Length.Value - 1;
+            }
+
+            // Calculate start position from end position and length
+            if (EndPosition.HasValue && Length.HasValue && !StartPosition.HasValue)
+            {
+                StartPosition = EndPosition.Value - Length.Value + 1;
+            }
+
+            // Calculate length from start and end positions
+            if (StartPosition.HasValue && EndPosition.HasValue && !Length.HasValue)
+            {
+                Length = EndPosition.Value - StartPosition.Value + 1;
+            }
+
+            // Infer SQL type from COBOL type if not specified
+            if (string.IsNullOrEmpty(SqlType) && !string.IsNullOrEmpty(CobolType))
+            {
+                SqlType = CobolTypeMapper.MapCobolToOracle(CobolType);
+            }
+        }
+
+        /// <summary>
         /// Creates a deep copy of the FieldDefinition
         /// </summary>
         public FieldDefinition Clone()
@@ -336,6 +505,36 @@ namespace ControlFileGenerator.WinForms.Models
                 DataFormat = this.DataFormat,
                 Description = this.Description
             };
+        }
+
+        /// <summary>
+        /// Returns a string representation of the field definition
+        /// </summary>
+        public override string ToString()
+        {
+            var parts = new List<string>();
+            
+            if (!string.IsNullOrEmpty(FieldName))
+                parts.Add($"Name: {FieldName}");
+            
+            if (IsVirtual)
+                parts.Add("Virtual");
+            
+            if (Order.HasValue)
+                parts.Add($"Order: {Order}");
+            
+            if (StartPosition.HasValue && EndPosition.HasValue)
+                parts.Add($"Position: {StartPosition}-{EndPosition}");
+            else if (StartPosition.HasValue)
+                parts.Add($"Start: {StartPosition}");
+            
+            if (Length.HasValue)
+                parts.Add($"Length: {Length}");
+            
+            if (!string.IsNullOrEmpty(SqlType))
+                parts.Add($"Type: {SqlType}");
+            
+            return string.Join(", ", parts);
         }
     }
 } 

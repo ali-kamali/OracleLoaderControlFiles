@@ -29,7 +29,7 @@ namespace ControlFileGenerator.WinForms.Services
 
             try
             {
-                _loggingService.Info($"Starting batch processing for {config.InputFiles.Count} files");
+                _loggingService.LogInformation($"Starting batch processing for {config.InputFiles.Count} files");
 
                 foreach (var inputFile in config.InputFiles)
                 {
@@ -49,7 +49,7 @@ namespace ControlFileGenerator.WinForms.Services
                     }
                     catch (Exception ex)
                     {
-                        _loggingService.Error($"Error processing file {inputFile}", ex);
+                        _loggingService.LogError($"Error processing file {inputFile}", ex);
                         result.ErrorCount++;
                         result.ProcessedFiles.Add(new FileResult
                         {
@@ -62,13 +62,13 @@ namespace ControlFileGenerator.WinForms.Services
 
                 result.EndTime = DateTime.Now;
                 result.Duration = result.EndTime - result.StartTime;
-                _loggingService.Info($"Batch processing completed. Success: {result.SuccessCount}, Errors: {result.ErrorCount}");
+                _loggingService.LogInformation($"Batch processing completed. Success: {result.SuccessCount}, Errors: {result.ErrorCount}");
 
                 return result;
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Fatal error in batch processing", ex);
+                _loggingService.LogError("Fatal error in batch processing", ex);
                 result.ErrorMessage = ex.Message;
                 return result;
             }
@@ -113,13 +113,13 @@ namespace ControlFileGenerator.WinForms.Services
                 fileResult.EndTime = DateTime.Now;
                 fileResult.Duration = fileResult.EndTime - fileResult.StartTime;
 
-                _loggingService.Info($"Generated control file: {outputFile}");
+                _loggingService.LogInformation($"Generated control file: {outputFile}");
             }
             catch (Exception ex)
             {
                 fileResult.ErrorMessage = ex.Message;
                 fileResult.Success = false;
-                _loggingService.Error($"Error processing {inputFile}", ex);
+                _loggingService.LogError($"Error processing {inputFile}", ex);
             }
 
             return fileResult;

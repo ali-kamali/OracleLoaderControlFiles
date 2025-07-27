@@ -39,12 +39,12 @@ namespace ControlFileGenerator.WinForms.Services
                 });
 
                 File.WriteAllText(filePath, json);
-                _loggingService.Info($"Template saved: {templateName}");
+                _loggingService.LogInformation($"Template saved: {templateName}");
                 return true;
             }
             catch (Exception ex)
             {
-                _loggingService.Error($"Error saving template {templateName}", ex);
+                _loggingService.LogError($"Error saving template {templateName}", ex);
                 return false;
             }
         }
@@ -68,12 +68,12 @@ namespace ControlFileGenerator.WinForms.Services
                     PropertyNameCaseInsensitive = true
                 });
 
-                _loggingService.Info($"Template loaded: {templateName}");
+                _loggingService.LogInformation($"Template loaded: {templateName}");
                 return template;
             }
             catch (Exception ex)
             {
-                _loggingService.Error($"Error loading template {templateName}", ex);
+                _loggingService.LogError($"Error loading template {templateName}", ex);
                 return null;
             }
         }
@@ -94,7 +94,7 @@ namespace ControlFileGenerator.WinForms.Services
             }
             catch (Exception ex)
             {
-                _loggingService.Error("Error getting template names", ex);
+                _loggingService.LogError("Error getting template names", ex);
                 return new List<string>();
             }
         }
@@ -110,14 +110,14 @@ namespace ControlFileGenerator.WinForms.Services
                 if (File.Exists(filePath))
                 {
                     File.Delete(filePath);
-                    _loggingService.Info($"Template deleted: {templateName}");
+                    _loggingService.LogInformation($"Template deleted: {templateName}");
                     return true;
                 }
                 return false;
             }
             catch (Exception ex)
             {
-                _loggingService.Error($"Error deleting template {templateName}", ex);
+                _loggingService.LogError($"Error deleting template {templateName}", ex);
                 return false;
             }
         }

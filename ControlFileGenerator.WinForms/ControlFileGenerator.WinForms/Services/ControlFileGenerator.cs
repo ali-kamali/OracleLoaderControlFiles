@@ -63,7 +63,7 @@ namespace ControlFileGenerator.WinForms.Services
             // Determine format: use forced mode if specified, otherwise auto-detect
             bool isFixedWidth = forceFixedWidthMode.HasValue 
                 ? forceFixedWidthMode.Value 
-                : _positionCalculator.IsFixedWidthFormat(fieldDefinitions);
+                : _positionCalculator.IsFixedWidthFormat(fieldDefinitions).isFixedWidth;
 
             if (isFixedWidth)
             {
@@ -354,7 +354,7 @@ namespace ControlFileGenerator.WinForms.Services
             summary.Add($"Table Name: {config.TableName}");
             summary.Add($"Load Mode: {config.LoadMode}");
             summary.Add($"Input File: {config.Infile}");
-            summary.Add($"Format: {(_positionCalculator.IsFixedWidthFormat(fieldDefinitions) ? "Fixed-Width" : "Delimited")}");
+            summary.Add($"Format: {(_positionCalculator.IsFixedWidthFormat(fieldDefinitions).isFixedWidth ? "Fixed-Width" : "Delimited")}");
             summary.Add($"Total Fields: {fieldDefinitions.Count}");
             summary.Add($"Record Length: {_positionCalculator.GetRecordLength(fieldDefinitions)}");
             summary.Add("");

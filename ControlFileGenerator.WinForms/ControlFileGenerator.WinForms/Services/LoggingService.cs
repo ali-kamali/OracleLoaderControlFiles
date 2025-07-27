@@ -1,160 +1,378 @@
-using System.Text;
+using System.Diagnostics;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ControlFileGenerator.WinForms.Services
 {
-    public enum LogLevel
-    {
-        Debug,
-        Info,
-        Warning,
-        Error,
-        Fatal
-    }
-
+    /// <summary>
+    /// Enterprise-grade logging service with structured logging, performance monitoring, and comprehensive error tracking
+    /// </summary>
     public class LoggingService
     {
         private readonly string _logDirectory;
         private readonly string _logFilePath;
-        private readonly int _maxLogFiles;
-        private readonly long _maxLogSize;
-        private readonly object _lockObject = new object();
+        private readonly string _errorLogFilePath;
+        private readonly string _performanceLogFilePath;
+        private readonly object _logLock = new object();
+        private readonly int _maxLogFileSizeMB = 100;
+        private readonly int _maxLogFiles = 10;
+        private readonly Dictionary<string, Stopwatch> _performanceTimers = new();
+        private readonly object _timerLock = new object();
 
         public LoggingService()
         {
             var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OracleControlFileGenerator");
-            _logDirectory = Path.Combine(appDataPath, "logs");
+            _logDirectory = Path.Combine(appDataPath, "Logs");
             Directory.CreateDirectory(_logDirectory);
-            
-            _logFilePath = Path.Combine(_logDirectory, $"app_{DateTime.Now:yyyyMMdd}.log");
-            _maxLogFiles = 30; // Keep 30 days of logs
-            _maxLogSize = 10 * 1024 * 1024; // 10MB max file size
+
+            var timestamp = DateTime.Now.ToString("yyyyMMdd");
+            _logFilePath = Path.Combine(_logDirectory, $"application_{timestamp}.log");
+            _errorLogFilePath = Path.Combine(_logDirectory, $"errors_{timestamp}.log");
+            _performanceLogFilePath = Path.Combine(_logDirectory, $"performance_{timestamp}.log");
+
+            // Clean up old log files
+            CleanupOldLogFiles();
         }
 
         /// <summary>
-        /// Logs a message with the specified level
+        /// Log levels for enterprise-grade logging
         /// </summary>
-        public void Log(LogLevel level, string message, Exception? exception = null)
+        public enum LogLevel
         {
-            var logEntry = CreateLogEntry(level, message, exception);
-            WriteLogEntry(logEntry);
+            Trace,
+            Debug,
+            Information,
+            Warning,
+            Error,
+            Critical
         }
 
         /// <summary>
-        /// Logs a debug message
+        /// Structured log entry with enterprise-grade metadata
         /// </summary>
-        public void Debug(string message)
+        public class LogEntry
         {
-            Log(LogLevel.Debug, message);
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+            public LogLevel Level { get; set; }
+            public string Category { get; set; } = string.Empty;
+            public string Message { get; set; } = string.Empty;
+            public string? Exception { get; set; }
+            public Dictionary<string, object>? Properties { get; set; }
+            public string? UserId { get; set; }
+            public string? SessionId { get; set; }
+            public string? Operation { get; set; }
+            public long? DurationMs { get; set; }
+            public string? MachineName { get; set; } = Environment.MachineName;
+            public string? ProcessId { get; set; } = Environment.ProcessId.ToString();
+            public string? ThreadId { get; set; } = Environment.CurrentManagedThreadId.ToString();
         }
 
         /// <summary>
-        /// Logs an info message
+        /// Logs an information message with structured data
         /// </summary>
-        public void Info(string message)
+        public void LogInformation(string message, string category = "General", Dictionary<string, object>? properties = null)
         {
-            Log(LogLevel.Info, message);
+            Log(LogLevel.Information, message, category, null, properties);
         }
 
         /// <summary>
-        /// Logs a warning message
+        /// Logs a warning message with structured data
         /// </summary>
-        public void Warning(string message)
+        public void LogWarning(string message, string category = "General", Dictionary<string, object>? properties = null)
         {
-            Log(LogLevel.Warning, message);
+            Log(LogLevel.Warning, message, category, null, properties);
         }
 
         /// <summary>
-        /// Logs an error message
+        /// Logs an error message with exception details
         /// </summary>
-        public void Error(string message, Exception? exception = null)
+        public void LogError(string message, Exception? exception = null, string category = "Error", Dictionary<string, object>? properties = null)
         {
-            Log(LogLevel.Error, message, exception);
+            Log(LogLevel.Error, message, category, exception, properties);
         }
 
         /// <summary>
-        /// Logs a fatal error message
+        /// Logs a critical error with full context
         /// </summary>
-        public void Fatal(string message, Exception? exception = null)
+        public void LogCritical(string message, Exception? exception = null, string category = "Critical", Dictionary<string, object>? properties = null)
         {
-            Log(LogLevel.Fatal, message, exception);
+            Log(LogLevel.Critical, message, category, exception, properties);
         }
 
         /// <summary>
-        /// Creates a structured log entry
+        /// Logs a debug message (only in debug builds)
         /// </summary>
-        private string CreateLogEntry(LogLevel level, string message, Exception? exception)
+        [Conditional("DEBUG")]
+        public void LogDebug(string message, string category = "Debug", Dictionary<string, object>? properties = null)
         {
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            var threadId = Environment.CurrentManagedThreadId;
-            var levelStr = level.ToString().ToUpper().PadRight(5);
+            Log(LogLevel.Debug, message, category, null, properties);
+        }
 
-            var logEntry = new StringBuilder();
-            logEntry.AppendLine($"[{timestamp}] [{levelStr}] [Thread:{threadId}] {message}");
+        /// <summary>
+        /// Logs a trace message (only in debug builds)
+        /// </summary>
+        [Conditional("DEBUG")]
+        public void LogTrace(string message, string category = "Trace", Dictionary<string, object>? properties = null)
+        {
+            Log(LogLevel.Trace, message, category, null, properties);
+        }
 
-            if (exception != null)
+        /// <summary>
+        /// Starts a performance timer for an operation
+        /// </summary>
+        public void StartPerformanceTimer(string operationName)
+        {
+            lock (_timerLock)
             {
-                logEntry.AppendLine($"Exception: {exception.GetType().Name}: {exception.Message}");
-                logEntry.AppendLine($"StackTrace: {exception.StackTrace}");
-                
-                var innerException = exception.InnerException;
-                while (innerException != null)
+                if (_performanceTimers.ContainsKey(operationName))
                 {
-                    logEntry.AppendLine($"Inner Exception: {innerException.GetType().Name}: {innerException.Message}");
-                    innerException = innerException.InnerException;
+                    _performanceTimers[operationName].Restart();
+                }
+                else
+                {
+                    _performanceTimers[operationName] = Stopwatch.StartNew();
                 }
             }
-
-            return logEntry.ToString();
         }
 
         /// <summary>
-        /// Writes a log entry to the log file
+        /// Stops a performance timer and logs the duration
         /// </summary>
-        private void WriteLogEntry(string logEntry)
+        public void StopPerformanceTimer(string operationName, string category = "Performance")
         {
-            lock (_lockObject)
+            lock (_timerLock)
             {
-                try
+                if (_performanceTimers.TryGetValue(operationName, out var timer))
                 {
-                    // Check if we need to rotate the log file
-                    if (File.Exists(_logFilePath))
+                    timer.Stop();
+                    var duration = timer.ElapsedMilliseconds;
+                    
+                    var properties = new Dictionary<string, object>
                     {
-                        var fileInfo = new FileInfo(_logFilePath);
-                        if (fileInfo.Length > _maxLogSize)
-                        {
-                            RotateLogFile();
-                        }
+                        ["Operation"] = operationName,
+                        ["DurationMs"] = duration,
+                        ["DurationSeconds"] = duration / 1000.0
+                    };
+
+                    if (duration > 1000) // Log slow operations as warnings
+                    {
+                        LogWarning($"Slow operation detected: {operationName} took {duration}ms", category, properties);
+                    }
+                    else
+                    {
+                        LogInformation($"Operation completed: {operationName} took {duration}ms", category, properties);
                     }
 
-                    // Write the log entry
-                    File.AppendAllText(_logFilePath, logEntry, Encoding.UTF8);
-
-                    // Clean up old log files
-                    CleanupOldLogFiles();
-                }
-                catch (Exception ex)
-                {
-                    // If we can't write to the log file, write to the debug output
-                    System.Diagnostics.Debug.WriteLine($"Failed to write to log file: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine(logEntry);
+                    _performanceTimers.Remove(operationName);
                 }
             }
         }
 
         /// <summary>
-        /// Rotates the current log file
+        /// Logs application startup information
         /// </summary>
-        private void RotateLogFile()
+        public void LogApplicationStart()
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["Version"] = GetApplicationVersion(),
+                ["OS"] = Environment.OSVersion.ToString(),
+                ["Framework"] = Environment.Version.ToString(),
+                ["WorkingDirectory"] = Environment.CurrentDirectory,
+                ["CommandLine"] = Environment.CommandLine
+            };
+
+            LogInformation("Application started", "Startup", properties);
+        }
+
+        /// <summary>
+        /// Logs application shutdown information
+        /// </summary>
+        public void LogApplicationShutdown()
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["Uptime"] = GetApplicationUptime()
+            };
+
+            LogInformation("Application shutting down", "Shutdown", properties);
+        }
+
+        /// <summary>
+        /// Logs user action with context
+        /// </summary>
+        public void LogUserAction(string action, string userId = "Unknown", Dictionary<string, object>? properties = null)
+        {
+            var actionProperties = properties ?? new Dictionary<string, object>();
+            actionProperties["UserId"] = userId;
+            actionProperties["Action"] = action;
+
+            LogInformation($"User action: {action}", "UserAction", actionProperties);
+        }
+
+        /// <summary>
+        /// Logs file operation with details
+        /// </summary>
+        public void LogFileOperation(string operation, string filePath, bool success, long? fileSize = null, Dictionary<string, object>? properties = null)
+        {
+            var fileProperties = properties ?? new Dictionary<string, object>();
+            fileProperties["Operation"] = operation;
+            fileProperties["FilePath"] = filePath;
+            fileProperties["Success"] = success;
+            fileProperties["FileSize"] = fileSize ?? 0;
+            fileProperties["FileName"] = Path.GetFileName(filePath);
+            fileProperties["FileExtension"] = Path.GetExtension(filePath);
+
+            var level = success ? LogLevel.Information : LogLevel.Error;
+            var message = success ? $"File operation successful: {operation}" : $"File operation failed: {operation}";
+
+            Log(level, message, "FileOperation", null, fileProperties);
+        }
+
+        /// <summary>
+        /// Logs validation results
+        /// </summary>
+        public void LogValidationResults(int errorCount, int warningCount, int suggestionCount, string category = "Validation")
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["ErrorCount"] = errorCount,
+                ["WarningCount"] = warningCount,
+                ["SuggestionCount"] = suggestionCount,
+                ["TotalIssues"] = errorCount + warningCount + suggestionCount,
+                ["IsValid"] = errorCount == 0
+            };
+
+            var level = errorCount > 0 ? LogLevel.Error : (warningCount > 0 ? LogLevel.Warning : LogLevel.Information);
+            var message = $"Validation completed: {errorCount} errors, {warningCount} warnings, {suggestionCount} suggestions";
+
+            Log(level, message, category, null, properties);
+        }
+
+        /// <summary>
+        /// Logs performance metrics
+        /// </summary>
+        public void LogPerformanceMetrics(string operation, long durationMs, int recordCount = 0, Dictionary<string, object>? properties = null)
+        {
+            var perfProperties = properties ?? new Dictionary<string, object>();
+            perfProperties["Operation"] = operation;
+            perfProperties["DurationMs"] = durationMs;
+            perfProperties["DurationSeconds"] = durationMs / 1000.0;
+            perfProperties["RecordCount"] = recordCount;
+            perfProperties["RecordsPerSecond"] = recordCount > 0 ? (recordCount * 1000.0 / durationMs) : 0;
+
+            var level = durationMs > 5000 ? LogLevel.Warning : LogLevel.Information;
+            var message = $"Performance: {operation} processed {recordCount} records in {durationMs}ms";
+
+            Log(level, message, "Performance", null, perfProperties);
+        }
+
+        /// <summary>
+        /// Core logging method with enterprise-grade features
+        /// </summary>
+        private void Log(LogLevel level, string message, string category, Exception? exception = null, Dictionary<string, object>? properties = null)
         {
             try
             {
-                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                var rotatedFilePath = _logFilePath.Replace(".log", $"_{timestamp}.log");
-                File.Move(_logFilePath, rotatedFilePath);
+                var logEntry = new LogEntry
+                {
+                    Level = level,
+                    Category = category,
+                    Message = SanitizeMessage(message),
+                    Exception = exception?.ToString(),
+                    Properties = properties
+                };
+
+                var logLine = FormatLogEntry(logEntry);
+                var logFile = level >= LogLevel.Error ? _errorLogFilePath : _logFilePath;
+
+                lock (_logLock)
+                {
+                    // Check file size and rotate if necessary
+                    if (File.Exists(logFile) && new FileInfo(logFile).Length > _maxLogFileSizeMB * 1024 * 1024)
+                    {
+                        RotateLogFile(logFile);
+                    }
+
+                    File.AppendAllText(logFile, logLine + Environment.NewLine);
+                }
+
+                // Also write to debug output for development
+                Debug.WriteLine($"[{level}] {category}: {message}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to rotate log file: {ex.Message}");
+                // Fallback to debug output if logging fails
+                Debug.WriteLine($"Logging failed: {ex.Message}");
+                Debug.WriteLine($"Original message: [{level}] {category}: {message}");
+            }
+        }
+
+        /// <summary>
+        /// Formats a log entry for file output
+        /// </summary>
+        private string FormatLogEntry(LogEntry entry)
+        {
+            var jsonOptions = new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            return JsonSerializer.Serialize(entry, jsonOptions);
+        }
+
+        /// <summary>
+        /// Sanitizes log messages to prevent injection attacks
+        /// </summary>
+        private string SanitizeMessage(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return string.Empty;
+
+            // Remove potentially dangerous characters
+            var sanitized = Regex.Replace(message, @"[^\w\s\-\.\,\!\?\:\;\(\)\[\]\{\}]", "");
+            
+            // Limit message length
+            return sanitized.Length > 1000 ? sanitized.Substring(0, 1000) + "..." : sanitized;
+        }
+
+        /// <summary>
+        /// Rotates log files when they exceed size limit
+        /// </summary>
+        private void RotateLogFile(string logFile)
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(logFile);
+                var fileName = Path.GetFileNameWithoutExtension(logFile);
+                var extension = Path.GetExtension(logFile);
+
+                // Move existing file with timestamp
+                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                var backupFile = Path.Combine(directory!, $"{fileName}_{timestamp}{extension}");
+                File.Move(logFile, backupFile);
+
+                // Clean up old backup files
+                var backupFiles = Directory.GetFiles(directory!, $"{fileName}_*{extension}")
+                    .OrderByDescending(f => f)
+                    .Skip(_maxLogFiles);
+
+                foreach (var oldFile in backupFiles)
+                {
+                    try
+                    {
+                        File.Delete(oldFile);
+                    }
+                    catch
+                    {
+                        // Ignore deletion errors
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Log rotation failed: {ex.Message}");
             }
         }
 
@@ -165,180 +383,119 @@ namespace ControlFileGenerator.WinForms.Services
         {
             try
             {
-                var logFiles = Directory.GetFiles(_logDirectory, "app_*.log")
-                    .Select(f => new FileInfo(f))
-                    .OrderByDescending(f => f.CreationTime)
-                    .ToList();
+                var cutoffDate = DateTime.Now.AddDays(-30); // Keep logs for 30 days
+                var logFiles = Directory.GetFiles(_logDirectory, "*.log");
 
-                if (logFiles.Count > _maxLogFiles)
+                foreach (var file in logFiles)
                 {
-                    var filesToDelete = logFiles.Skip(_maxLogFiles);
-                    foreach (var file in filesToDelete)
+                    try
+                    {
+                        var fileInfo = new FileInfo(file);
+                        if (fileInfo.CreationTime < cutoffDate)
+                        {
+                            File.Delete(file);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore deletion errors
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Log cleanup failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gets application version information
+        /// </summary>
+        private string GetApplicationVersion()
+        {
+            try
+            {
+                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                var version = assembly.GetName().Version;
+                return version?.ToString() ?? "Unknown";
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        /// <summary>
+        /// Gets application uptime
+        /// </summary>
+        private string GetApplicationUptime()
+        {
+            try
+            {
+                var uptime = DateTime.Now - Process.GetCurrentProcess().StartTime;
+                return uptime.ToString(@"dd\.hh\:mm\:ss");
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        /// <summary>
+        /// Exports log entries for analysis
+        /// </summary>
+        public List<LogEntry> ExportLogEntries(DateTime startDate, DateTime endDate, LogLevel? minLevel = null)
+        {
+            var entries = new List<LogEntry>();
+            var logFiles = Directory.GetFiles(_logDirectory, "*.log");
+
+            foreach (var logFile in logFiles)
+            {
+                try
+                {
+                    var lines = File.ReadAllLines(logFile);
+                    foreach (var line in lines)
                     {
                         try
                         {
-                            file.Delete();
+                            var entry = JsonSerializer.Deserialize<LogEntry>(line);
+                            if (entry != null && 
+                                entry.Timestamp >= startDate && 
+                                entry.Timestamp <= endDate &&
+                                (minLevel == null || entry.Level >= minLevel))
+                            {
+                                entries.Add(entry);
+                            }
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            System.Diagnostics.Debug.WriteLine($"Failed to delete old log file {file.Name}: {ex.Message}");
+                            // Skip invalid log entries
                         }
                     }
                 }
+                catch
+                {
+                    // Skip files that can't be read
+                }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to cleanup old log files: {ex.Message}");
-            }
+
+            return entries.OrderBy(e => e.Timestamp).ToList();
         }
 
         /// <summary>
-        /// Gets the recent log entries
+        /// Gets log statistics for monitoring
         /// </summary>
-        public List<string> GetRecentLogEntries(int count = 100)
+        public Dictionary<string, object> GetLogStatistics()
         {
-            var entries = new List<string>();
-            
-            try
-            {
-                if (File.Exists(_logFilePath))
-                {
-                    var lines = File.ReadAllLines(_logFilePath);
-                    entries.AddRange(lines.TakeLast(count));
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to read log entries: {ex.Message}");
-            }
+            var stats = new Dictionary<string, object>();
+            var logFiles = Directory.GetFiles(_logDirectory, "*.log");
 
-            return entries;
-        }
+            stats["TotalLogFiles"] = logFiles.Length;
+            stats["TotalLogSizeMB"] = logFiles.Sum(f => new FileInfo(f).Length) / (1024.0 * 1024.0);
+            stats["OldestLogFile"] = logFiles.Length > 0 ? File.GetCreationTime(logFiles.Min()) : DateTime.MinValue;
+            stats["NewestLogFile"] = logFiles.Length > 0 ? File.GetCreationTime(logFiles.Max()) : DateTime.MinValue;
 
-        /// <summary>
-        /// Gets log entries for a specific date
-        /// </summary>
-        public List<string> GetLogEntriesForDate(DateTime date)
-        {
-            var entries = new List<string>();
-            var dateStr = date.ToString("yyyyMMdd");
-            var logFile = Path.Combine(_logDirectory, $"app_{dateStr}.log");
-            
-            try
-            {
-                if (File.Exists(logFile))
-                {
-                    var lines = File.ReadAllLines(logFile);
-                    entries.AddRange(lines);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to read log entries for date {dateStr}: {ex.Message}");
-            }
-
-            return entries;
-        }
-
-        /// <summary>
-        /// Exports log entries to a file
-        /// </summary>
-        public void ExportLogEntries(string exportPath, DateTime? startDate = null, DateTime? endDate = null)
-        {
-            try
-            {
-                var allEntries = new List<string>();
-                
-                if (startDate.HasValue && endDate.HasValue)
-                {
-                    for (var date = startDate.Value; date <= endDate.Value; date = date.AddDays(1))
-                    {
-                        var entries = GetLogEntriesForDate(date);
-                        allEntries.AddRange(entries);
-                    }
-                }
-                else
-                {
-                    allEntries = GetRecentLogEntries(1000);
-                }
-
-                File.WriteAllLines(exportPath, allEntries, Encoding.UTF8);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to export log entries: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Clears all log files
-        /// </summary>
-        public void ClearAllLogs()
-        {
-            try
-            {
-                var logFiles = Directory.GetFiles(_logDirectory, "app_*.log");
-                foreach (var file in logFiles)
-                {
-                    File.Delete(file);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to clear logs: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Gets log statistics
-        /// </summary>
-        public Dictionary<LogLevel, int> GetLogStatistics(DateTime? startDate = null, DateTime? endDate = null)
-        {
-            var statistics = new Dictionary<LogLevel, int>();
-            foreach (LogLevel level in Enum.GetValues(typeof(LogLevel)))
-            {
-                statistics[level] = 0;
-            }
-
-            try
-            {
-                List<string> entries;
-                
-                if (startDate.HasValue && endDate.HasValue)
-                {
-                    entries = new List<string>();
-                    for (var date = startDate.Value; date <= endDate.Value; date = date.AddDays(1))
-                    {
-                        var dateEntries = GetLogEntriesForDate(date);
-                        entries.AddRange(dateEntries);
-                    }
-                }
-                else
-                {
-                    entries = GetRecentLogEntries(1000);
-                }
-
-                foreach (var entry in entries)
-                {
-                    if (entry.Contains("[DEBUG]"))
-                        statistics[LogLevel.Debug]++;
-                    else if (entry.Contains("[INFO]"))
-                        statistics[LogLevel.Info]++;
-                    else if (entry.Contains("[WARN]"))
-                        statistics[LogLevel.Warning]++;
-                    else if (entry.Contains("[ERROR]"))
-                        statistics[LogLevel.Error]++;
-                    else if (entry.Contains("[FATAL]"))
-                        statistics[LogLevel.Fatal]++;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to get log statistics: {ex.Message}");
-            }
-
-            return statistics;
+            return stats;
         }
     }
 } 
