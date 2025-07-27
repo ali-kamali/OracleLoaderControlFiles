@@ -90,8 +90,9 @@ namespace ControlFileGenerator.WinForms.Services
         /// <summary>
         /// Parses an Excel file and extracts field definitions
         /// </summary>
-        public async Task<List<FieldDefinition>> ParseExcelFileAsync(string filePath, string sheetName = null)
+        public async Task<List<FieldDefinition>> ParseExcelFileAsync(string filePath, string? sheetName = null)
         {
+            // EPPlus 8.x license setup
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
             using var package = new ExcelPackage(new FileInfo(filePath));
@@ -113,6 +114,7 @@ namespace ControlFileGenerator.WinForms.Services
         /// </summary>
         public async Task<List<string>> GetSheetNamesAsync(string filePath)
         {
+            // EPPlus 8.x license setup
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
             using var package = new ExcelPackage(new FileInfo(filePath));
