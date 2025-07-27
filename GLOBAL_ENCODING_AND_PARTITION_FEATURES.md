@@ -32,6 +32,7 @@ The following character sets are available in the dropdown:
 - **Control**: Dropdown combo box labeled "Global File Encoding"
 - **Default**: UTF8
 - **Behavior**: Only generates CHARACTERSET clause if different from UTF8
+- **Note**: Replaces the old "Encoding" textbox for better user experience and error prevention
 
 ## Partition-Aware Options
 
@@ -166,4 +167,5 @@ TRAILING NULLCOLS
 
 - **Backward Compatibility**: Existing configurations continue to work unchanged
 - **Default Values**: New features default to safe, non-intrusive values
-- **UI Layout**: New controls are added to the File References tab for logical grouping 
+- **UI Layout**: New controls are added to the File References tab for logical grouping
+- **Encoding Field**: The old "Encoding" textbox has been replaced with the "Global File Encoding" combobox for better user experience 
