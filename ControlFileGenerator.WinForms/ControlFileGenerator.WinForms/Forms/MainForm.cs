@@ -66,8 +66,9 @@ namespace ControlFileGenerator.WinForms.Forms
             // Enable/disable buttons based on state
             UpdateButtonStates();
             
-            // Initialize mode toggle
+            // Initialize mode toggle and column visibility
             UpdateModeDisplay();
+            UpdateDataGridViewForMode();
         }
 
         private void InitializeDataGridView()
@@ -604,10 +605,18 @@ namespace ControlFileGenerator.WinForms.Forms
                 // Toggle data mode for all fields
                 EdgeCaseHandler.ToggleDataMode(_fieldDefinitions, _isFixedWidthMode);
                 
-                // Apply edge case handling
-                EdgeCaseHandler.ApplyEdgeCaseHandling(_fieldDefinitions);
+                // Update UI based on mode
+                UpdateDataGridViewForMode();
                 
-                RefreshDataGridView();
+                // Apply mode-specific validation
+                ApplyModeSpecificValidation();
+                
+                // Update preview if available
+                if (btnPreview.Enabled)
+                {
+                    UpdatePreview();
+                }
+                
                 UpdateModeDisplay();
                 UpdateStatusMessage($"Switched to {(_isFixedWidthMode ? "Fixed-Width" : "CSV")} mode");
             }
@@ -619,20 +628,152 @@ namespace ControlFileGenerator.WinForms.Forms
             }
         }
 
+        private void UpdateDataGridViewForMode()
+        {
+            // Update column visibility and properties based on mode
+            if (_isFixedWidthMode)
+            {
+                // Fixed-width mode: Show position columns, hide delimiter columns
+                SetColumnVisibility("StartPosition", true);
+                SetColumnVisibility("EndPosition", true);
+                SetColumnVisibility("Length", true);
+                SetColumnVisibility("Order", true);
+                
+                // Hide delimiter-related columns
+                SetColumnVisibility("Delimiter", false);
+                SetColumnVisibility("EnclosedBy", false);
+                
+                // Enable position editing
+                SetColumnReadOnly("StartPosition", false);
+                SetColumnReadOnly("EndPosition", false);
+                SetColumnReadOnly("Length", false);
+                SetColumnReadOnly("Order", false);
+            }
+            else
+            {
+                // CSV mode: Hide position columns, show delimiter columns
+                SetColumnVisibility("StartPosition", false);
+                SetColumnVisibility("EndPosition", false);
+                SetColumnVisibility("Length", false);
+                SetColumnVisibility("Order", false);
+                
+                // Show delimiter-related columns
+                SetColumnVisibility("Delimiter", true);
+                SetColumnVisibility("EnclosedBy", true);
+                
+                // Disable position editing
+                SetColumnReadOnly("StartPosition", true);
+                SetColumnReadOnly("EndPosition", true);
+                SetColumnReadOnly("Length", true);
+                SetColumnReadOnly("Order", true);
+            }
+            
+            RefreshDataGridView();
+        }
+
+        private void SetColumnVisibility(string columnName, bool visible)
+        {
+            var column = dgvFields.Columns.Cast<DataGridViewColumn>()
+                .FirstOrDefault(c => c.DataPropertyName == columnName);
+            
+            if (column != null)
+            {
+                column.Visible = visible;
+            }
+        }
+
+        private void SetColumnReadOnly(string columnName, bool readOnly)
+        {
+            var column = dgvFields.Columns.Cast<DataGridViewColumn>()
+                .FirstOrDefault(c => c.DataPropertyName == columnName);
+            
+            if (column != null)
+            {
+                column.ReadOnly = readOnly;
+            }
+        }
+
+        private void ApplyModeSpecificValidation()
+        {
+            if (_isFixedWidthMode)
+            {
+                // Fixed-width validation: Check positions, overlaps, etc.
+                var positionErrors = EdgeCaseHandler.EdgeCaseGuidelines.DetectOverlappingPositions(_fieldDefinitions);
+                var missingPositionErrors = _fieldDefinitions
+                    .Where(f => !f.StartPosition.HasValue && !f.Length.HasValue)
+                    .Select(f => $"Field '{f.FieldName}' missing start position or length")
+                    .ToList();
+                
+                if (positionErrors.Any() || missingPositionErrors.Any())
+                {
+                    var allErrors = positionErrors.Concat(missingPositionErrors).ToList();
+                    UpdateStatusMessage($"Fixed-width validation: {allErrors.Count} issue(s) found");
+                }
+                else
+                {
+                    UpdateStatusMessage("Fixed-width validation: All fields valid");
+                }
+            }
+            else
+            {
+                // CSV validation: Only check field names, ignore positions
+                var duplicateErrors = EdgeCaseHandler.EdgeCaseGuidelines.DetectDuplicateFieldNames(_fieldDefinitions);
+                var emptyNameErrors = _fieldDefinitions
+                    .Where(f => string.IsNullOrWhiteSpace(f.FieldName))
+                    .Select(f => $"Field at position {f.Order} has empty name")
+                    .ToList();
+                
+                if (duplicateErrors.Any() || emptyNameErrors.Any())
+                {
+                    var allErrors = duplicateErrors.Concat(emptyNameErrors).ToList();
+                    UpdateStatusMessage($"CSV validation: {allErrors.Count} issue(s) found");
+                }
+                else
+                {
+                    UpdateStatusMessage("CSV validation: All fields valid");
+                }
+            }
+        }
+
+        private void UpdatePreview()
+        {
+            try
+            {
+                // Force preview update with current mode
+                if (_fieldDefinitions != null && _fieldDefinitions.Any())
+                {
+                    var previewContent = _controlFileGenerator.GenerateControlFile(_fieldDefinitions, _loaderConfig, _isFixedWidthMode);
+                    // Note: This would update the preview form if it's open
+                    // For now, we'll just log that preview should be updated
+                    _loggingService.Info("Preview should be updated with new mode");
+                }
+            }
+            catch (Exception ex)
+            {
+                _loggingService.Error("Error updating preview", ex);
+            }
+        }
+
         private void BtnValidate_Click(object sender, EventArgs e)
         {
             try
             {
+                // Use mode-specific validation
+                ApplyModeSpecificValidation();
+                
+                // Also run general validation
                 var validationResult = EdgeCaseHandler.ValidateAllFields(_fieldDefinitions);
                 
                 if (validationResult.IsValid && !validationResult.HasWarnings)
                 {
-                    MessageBox.Show("All fields are valid!", "Validation", 
+                    MessageBox.Show($"All fields are valid for {(_isFixedWidthMode ? "Fixed-Width" : "CSV")} mode!", "Validation", 
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
                     var message = new StringBuilder();
+                    message.AppendLine($"Validation Results for {(_isFixedWidthMode ? "Fixed-Width" : "CSV")} Mode:");
+                    message.AppendLine();
                     
                     if (validationResult.HasErrors)
                     {
@@ -784,7 +925,7 @@ namespace ControlFileGenerator.WinForms.Forms
                     return;
                 }
 
-                var controlFileContent = _controlFileGenerator.GenerateControlFile(_fieldDefinitions, _loaderConfig);
+                var controlFileContent = _controlFileGenerator.GenerateControlFile(_fieldDefinitions, _loaderConfig, _isFixedWidthMode);
                 
                 using var previewForm = new PreviewForm(controlFileContent);
                 previewForm.ShowDialog();
@@ -817,7 +958,7 @@ namespace ControlFileGenerator.WinForms.Forms
 
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    var controlFileContent = _controlFileGenerator.GenerateControlFile(_fieldDefinitions, _loaderConfig);
+                    var controlFileContent = _controlFileGenerator.GenerateControlFile(_fieldDefinitions, _loaderConfig, _isFixedWidthMode);
                     File.WriteAllText(saveFileDialog.FileName, controlFileContent);
                     
                     UpdateStatusMessage($"Control file saved to: {saveFileDialog.FileName}");

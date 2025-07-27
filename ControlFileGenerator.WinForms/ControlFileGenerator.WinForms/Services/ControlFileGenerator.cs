@@ -14,7 +14,7 @@ namespace ControlFileGenerator.WinForms.Services
         /// <summary>
         /// Generates a complete SQL*Loader control file
         /// </summary>
-        public string GenerateControlFile(List<FieldDefinition> fieldDefinitions, LoaderConfig config)
+        public string GenerateControlFile(List<FieldDefinition> fieldDefinitions, LoaderConfig config, bool? forceFixedWidthMode = null)
         {
             var lines = new List<string>();
 
@@ -52,8 +52,10 @@ namespace ControlFileGenerator.WinForms.Services
             lines.Add($"INTO TABLE {config.TableName.ToUpper()}");
             lines.Add(config.GetLoadModeString());
 
-            // Determine if this is fixed-width or delimited format
-            bool isFixedWidth = _positionCalculator.IsFixedWidthFormat(fieldDefinitions);
+            // Determine format: use forced mode if specified, otherwise auto-detect
+            bool isFixedWidth = forceFixedWidthMode.HasValue 
+                ? forceFixedWidthMode.Value 
+                : _positionCalculator.IsFixedWidthFormat(fieldDefinitions);
 
             if (isFixedWidth)
             {
