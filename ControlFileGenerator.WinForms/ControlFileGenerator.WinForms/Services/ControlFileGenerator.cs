@@ -217,7 +217,7 @@ namespace ControlFileGenerator.WinForms.Services
                     StartPosition = 1,
                     EndPosition = 6,
                     SqlType = "NUMBER",
-                    Nullable = false
+                    Nullable = "NO"
                 },
                 new FieldDefinition
                 {
@@ -225,7 +225,7 @@ namespace ControlFileGenerator.WinForms.Services
                     StartPosition = 7,
                     EndPosition = 26,
                     SqlType = "CHAR",
-                    Nullable = true,
+                    Nullable = "YES",
                     Transform = "UPPER(:first_name)"
                 },
                 new FieldDefinition
@@ -234,7 +234,7 @@ namespace ControlFileGenerator.WinForms.Services
                     StartPosition = 27,
                     EndPosition = 46,
                     SqlType = "CHAR",
-                    Nullable = true,
+                    Nullable = "YES",
                     Transform = "UPPER(:last_name)"
                 },
                 new FieldDefinition
@@ -251,7 +251,7 @@ namespace ControlFileGenerator.WinForms.Services
                     StartPosition = 55,
                     EndPosition = 61,
                     SqlType = "NUMBER",
-                    Nullable = true,
+                    Nullable = "YES",
                     NullIfValue = "99999"
                 }
             };

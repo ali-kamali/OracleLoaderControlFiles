@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using ControlFileGenerator.WinForms.Services;
 
 namespace ControlFileGenerator.WinForms.Models
 {
@@ -26,7 +27,7 @@ namespace ControlFileGenerator.WinForms.Models
         public string SqlType { get; set; } = string.Empty;
 
         [DisplayName("Nullable")]
-        public bool? Nullable { get; set; }
+        public string Nullable { get; set; } = "YES";
 
         [DisplayName("Transform")]
         public string Transform { get; set; } = string.Empty;
@@ -248,7 +249,7 @@ namespace ControlFileGenerator.WinForms.Models
         {
             if (!string.IsNullOrEmpty(NullIfValue))
             {
-                return $"NULLIF {FieldName}={NullIfValue}";
+                return IntelligentNullValueProcessor.ProcessNullValuePattern(NullIfValue, FieldName);
             }
             return string.Empty;
         }

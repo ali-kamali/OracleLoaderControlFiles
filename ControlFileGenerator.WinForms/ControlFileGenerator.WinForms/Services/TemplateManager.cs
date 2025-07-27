@@ -130,14 +130,14 @@ namespace ControlFileGenerator.WinForms.Services
             // Employee template
             var employeeFields = new List<FieldDefinition>
             {
-                new() { FieldName = "EMPNO", Order = 1, StartPosition = 1, EndPosition = 6, Length = 6, CobolType = "PIC 9(6)", SqlType = "NUMBER", Nullable = false, Description = "Employee Number" },
-                new() { FieldName = "ENAME", Order = 2, StartPosition = 7, EndPosition = 26, Length = 20, CobolType = "PIC X(20)", SqlType = "VARCHAR2", Nullable = true, Transform = "UPPER(:ENAME)", NullIfValue = "BLANKS", Description = "Employee Name" },
-                new() { FieldName = "SAL", Order = 3, StartPosition = 27, EndPosition = 33, Length = 7, CobolType = "PIC 9(7)V99", SqlType = "DECIMAL", Nullable = true, Transform = ":SAL * 100", NullIfValue = "99999", Description = "Salary" },
-                new() { FieldName = "HIREDATE", Order = 4, StartPosition = 34, EndPosition = 41, Length = 8, CobolType = "PIC 9(8)", SqlType = "DATE", Nullable = true, DataFormat = "YYYYMMDD", Description = "Hire Date" },
-                new() { FieldName = "DEPTNO", Order = 5, StartPosition = 42, EndPosition = 44, Length = 3, CobolType = "PIC 9(3)", SqlType = "NUMBER", Nullable = true, Description = "Department Number" },
-                new() { FieldName = "JOB", Order = 6, StartPosition = 45, EndPosition = 54, Length = 10, CobolType = "PIC X(10)", SqlType = "VARCHAR2", Nullable = true, Transform = "UPPER(:JOB)", Description = "Job Title" },
-                new() { FieldName = "MGR", Order = 7, StartPosition = 55, EndPosition = 60, Length = 6, CobolType = "PIC 9(6)", SqlType = "NUMBER", Nullable = true, Description = "Manager Number" },
-                new() { FieldName = "COMM", Order = 8, StartPosition = 61, EndPosition = 68, Length = 8, CobolType = "PIC 9(8)V99", SqlType = "DECIMAL", Nullable = true, Description = "Commission" }
+                new() { FieldName = "EMPNO", Order = 1, StartPosition = 1, EndPosition = 6, Length = 6, CobolType = "PIC 9(6)", SqlType = "NUMBER", Nullable = "NO", Description = "Employee Number" },
+                new() { FieldName = "ENAME", Order = 2, StartPosition = 7, EndPosition = 26, Length = 20, CobolType = "PIC X(20)", SqlType = "VARCHAR2", Nullable = "YES", Transform = "UPPER(:ENAME)", NullIfValue = "BLANKS", Description = "Employee Name" },
+                new() { FieldName = "SAL", Order = 3, StartPosition = 27, EndPosition = 33, Length = 7, CobolType = "PIC 9(7)V99", SqlType = "DECIMAL", Nullable = "YES", Transform = ":SAL * 100", NullIfValue = "99999", Description = "Salary" },
+                new() { FieldName = "HIREDATE", Order = 4, StartPosition = 34, EndPosition = 41, Length = 8, CobolType = "PIC 9(8)", SqlType = "DATE", Nullable = "YES", DataFormat = "YYYYMMDD", Description = "Hire Date" },
+                new() { FieldName = "DEPTNO", Order = 5, StartPosition = 42, EndPosition = 44, Length = 3, CobolType = "PIC 9(3)", SqlType = "NUMBER", Nullable = "YES", Description = "Department Number" },
+                new() { FieldName = "JOB", Order = 6, StartPosition = 45, EndPosition = 54, Length = 10, CobolType = "PIC X(10)", SqlType = "VARCHAR2", Nullable = "YES", Transform = "UPPER(:JOB)", Description = "Job Title" },
+                new() { FieldName = "MGR", Order = 7, StartPosition = 55, EndPosition = 60, Length = 6, CobolType = "PIC 9(6)", SqlType = "NUMBER", Nullable = "YES", Description = "Manager Number" },
+                new() { FieldName = "COMM", Order = 8, StartPosition = 61, EndPosition = 68, Length = 8, CobolType = "PIC 9(8)V99", SqlType = "DECIMAL", Nullable = "YES", Description = "Commission" }
             };
 
             var employeeConfig = new LoaderConfig
@@ -160,14 +160,14 @@ namespace ControlFileGenerator.WinForms.Services
             // Customer template
             var customerFields = new List<FieldDefinition>
             {
-                new() { FieldName = "CUSTID", Order = 1, StartPosition = 1, EndPosition = 8, Length = 8, CobolType = "PIC 9(8)", SqlType = "NUMBER", Nullable = false, Description = "Customer ID" },
-                new() { FieldName = "CUSTNAME", Order = 2, StartPosition = 9, EndPosition = 38, Length = 30, CobolType = "PIC X(30)", SqlType = "VARCHAR2", Nullable = true, Transform = "UPPER(:CUSTNAME)", NullIfValue = "BLANKS", Description = "Customer Name" },
-                new() { FieldName = "ADDRESS", Order = 3, StartPosition = 39, EndPosition = 88, Length = 50, CobolType = "PIC X(50)", SqlType = "VARCHAR2", Nullable = true, Description = "Address" },
-                new() { FieldName = "CITY", Order = 4, StartPosition = 89, EndPosition = 108, Length = 20, CobolType = "PIC X(20)", SqlType = "VARCHAR2", Nullable = true, Transform = "UPPER(:CITY)", Description = "City" },
-                new() { FieldName = "STATE", Order = 5, StartPosition = 109, EndPosition = 110, Length = 2, CobolType = "PIC XX", SqlType = "CHAR", Nullable = true, Transform = "UPPER(:STATE)", Description = "State" },
-                new() { FieldName = "ZIPCODE", Order = 6, StartPosition = 111, EndPosition = 115, Length = 5, CobolType = "PIC 9(5)", SqlType = "VARCHAR2", Nullable = true, Description = "ZIP Code" },
-                new() { FieldName = "PHONE", Order = 7, StartPosition = 116, EndPosition = 125, Length = 10, CobolType = "PIC 9(10)", SqlType = "VARCHAR2", Nullable = true, Description = "Phone Number" },
-                new() { FieldName = "CREDIT_LIMIT", Order = 8, StartPosition = 126, EndPosition = 133, Length = 8, CobolType = "PIC 9(8)V99", SqlType = "DECIMAL", Nullable = true, Description = "Credit Limit" }
+                new() { FieldName = "CUSTID", Order = 1, StartPosition = 1, EndPosition = 8, Length = 8, CobolType = "PIC 9(8)", SqlType = "NUMBER", Nullable = "NO", Description = "Customer ID" },
+                new() { FieldName = "CUSTNAME", Order = 2, StartPosition = 9, EndPosition = 38, Length = 30, CobolType = "PIC X(30)", SqlType = "VARCHAR2", Nullable = "YES", Transform = "UPPER(:CUSTNAME)", NullIfValue = "BLANKS", Description = "Customer Name" },
+                new() { FieldName = "ADDRESS", Order = 3, StartPosition = 39, EndPosition = 88, Length = 50, CobolType = "PIC X(50)", SqlType = "VARCHAR2", Nullable = "YES", Description = "Address" },
+                new() { FieldName = "CITY", Order = 4, StartPosition = 89, EndPosition = 108, Length = 20, CobolType = "PIC X(20)", SqlType = "VARCHAR2", Nullable = "YES", Transform = "UPPER(:CITY)", Description = "City" },
+                new() { FieldName = "STATE", Order = 5, StartPosition = 109, EndPosition = 110, Length = 2, CobolType = "PIC XX", SqlType = "CHAR", Nullable = "YES", Transform = "UPPER(:STATE)", Description = "State" },
+                new() { FieldName = "ZIPCODE", Order = 6, StartPosition = 111, EndPosition = 115, Length = 5, CobolType = "PIC 9(5)", SqlType = "VARCHAR2", Nullable = "YES", Description = "ZIP Code" },
+                new() { FieldName = "PHONE", Order = 7, StartPosition = 116, EndPosition = 125, Length = 10, CobolType = "PIC 9(10)", SqlType = "VARCHAR2", Nullable = "YES", Description = "Phone Number" },
+                new() { FieldName = "CREDIT_LIMIT", Order = 8, StartPosition = 126, EndPosition = 133, Length = 8, CobolType = "PIC 9(8)V99", SqlType = "DECIMAL", Nullable = "YES", Description = "Credit Limit" }
             };
 
             var customerConfig = new LoaderConfig

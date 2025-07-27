@@ -46,6 +46,9 @@ namespace ControlFileGenerator.WinForms.Forms
             // Initialize DataGridView
             InitializeDataGridView();
             
+            // Add smart null value buttons
+            AddSmartNullValueButtons();
+            
             // Set up event handlers
             btnLoadExcel.Click += BtnLoadExcel_Click;
             btnStartFromScratch.Click += BtnStartFromScratch_Click;
@@ -108,6 +111,8 @@ namespace ControlFileGenerator.WinForms.Forms
             dgvFields.CellToolTipTextNeeded += DgvFields_CellToolTipTextNeeded;
             dgvFields.KeyDown += DgvFields_KeyDown;
             dgvFields.CellDoubleClick += DgvFields_CellDoubleClick;
+            dgvFields.EditingControlShowing += DgvFields_EditingControlShowing;
+            dgvFields.DataError += DgvFields_DataError;
             
             // Add context menu for additional functionality
             InitializeContextMenu();
@@ -176,14 +181,20 @@ namespace ControlFileGenerator.WinForms.Forms
             };
             dgvFields.Columns.Add(cobolTypeColumn);
 
-            // SQL Type Column (ComboBox)
+            // SQL Type Column (ComboBox) - Enhanced with more Oracle types
             var sqlTypeColumn = new DataGridViewComboBoxColumn
             {
                 DataPropertyName = "SqlType",
                 HeaderText = "SQL Type",
                 Width = 120,
                 ToolTipText = "Oracle SQL data type",
-                Items = { "CHAR", "VARCHAR2", "NUMBER", "DATE", "TIMESTAMP", "CLOB", "BLOB", "DECIMAL", "INTEGER", "FLOAT" }
+                Items = { 
+                    "CHAR", "VARCHAR2", "NUMBER", "DATE", "TIMESTAMP", 
+                    "CLOB", "BLOB", "DECIMAL", "INTEGER", "FLOAT", 
+                    "DOUBLE", "REAL", "RAW", "LONG", "LONG RAW",
+                    "BFILE", "BINARY_FLOAT", "BINARY_DOUBLE", "INTERVAL YEAR TO MONTH",
+                    "INTERVAL DAY TO SECOND", "XMLTYPE", "JSON", "UROWID"
+                }
             };
             dgvFields.Columns.Add(sqlTypeColumn);
 
@@ -197,6 +208,28 @@ namespace ControlFileGenerator.WinForms.Forms
                 Items = { "YES", "NO" }
             };
             dgvFields.Columns.Add(nullableColumn);
+
+            // Delimiter Column (ComboBox) - For CSV mode
+            var delimiterColumn = new DataGridViewComboBoxColumn
+            {
+                DataPropertyName = "Delimiter",
+                HeaderText = "Delimiter",
+                Width = 80,
+                ToolTipText = "Field delimiter for CSV mode",
+                Items = { ",", "|", "TAB", "~", ";", ":", "\t", " " }
+            };
+            dgvFields.Columns.Add(delimiterColumn);
+
+            // Enclosed By Column (ComboBox) - For CSV mode
+            var enclosedByColumn = new DataGridViewComboBoxColumn
+            {
+                DataPropertyName = "EnclosedBy",
+                HeaderText = "Enclosed By",
+                Width = 100,
+                ToolTipText = "Character that encloses field values",
+                Items = { "\"", "'", "`", "", "|", "~" }
+            };
+            dgvFields.Columns.Add(enclosedByColumn);
 
             // Transform Column
             var transformColumn = new DataGridViewTextBoxColumn
@@ -228,6 +261,21 @@ namespace ControlFileGenerator.WinForms.Forms
             };
             dgvFields.Columns.Add(nullIfColumn);
 
+            // Data Format Column (ComboBox) - For date/time formatting
+            var dataFormatColumn = new DataGridViewComboBoxColumn
+            {
+                DataPropertyName = "DataFormat",
+                HeaderText = "Format",
+                Width = 120,
+                ToolTipText = "Data format for dates, numbers, etc.",
+                Items = { 
+                    "", "YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", 
+                    "YYYY-MM-DD HH24:MI:SS", "MM/DD/YYYY HH:MI:SS AM",
+                    "999999.99", "999,999.99", "999999", "999,999"
+                }
+            };
+            dgvFields.Columns.Add(dataFormatColumn);
+
             // Description Column
             var descriptionColumn = new DataGridViewTextBoxColumn
             {
@@ -243,49 +291,59 @@ namespace ControlFileGenerator.WinForms.Forms
         {
             var contextMenu = new ContextMenuStrip();
             
-            // File Operations
-            var fileMenu = new ToolStripMenuItem("File Operations");
-            var startFromScratchItem = new ToolStripMenuItem("Start from Scratch", null, (sender, e) => BtnStartFromScratch_Click(sender, e));
-            var loadExcelItem = new ToolStripMenuItem("Load Excel Metadata", null, (sender, e) => BtnLoadExcel_Click(sender, e));
-            fileMenu.DropDownItems.AddRange(new ToolStripItem[] { startFromScratchItem, loadExcelItem });
-            contextMenu.Items.Add(fileMenu);
+            // Add field management options
+            var addFieldItem = new ToolStripMenuItem("Add Field");
+            addFieldItem.Click += (s, e) => BtnAddField_Click(s, e);
+            contextMenu.Items.Add(addFieldItem);
+            
+            var removeFieldItem = new ToolStripMenuItem("Remove Field");
+            removeFieldItem.Click += (s, e) => BtnRemoveField_Click(s, e);
+            contextMenu.Items.Add(removeFieldItem);
             
             contextMenu.Items.Add(new ToolStripSeparator());
             
-            // Field Operations
-            var fieldMenu = new ToolStripMenuItem("Field Operations");
-            var addFieldItem = new ToolStripMenuItem("Add Field (Ctrl+N)", null, (sender, e) => BtnAddField_Click(sender, e));
-            var removeFieldItem = new ToolStripMenuItem("Remove Field (Del)", null, (sender, e) => BtnRemoveField_Click(sender, e));
-            var duplicateFieldItem = new ToolStripMenuItem("Duplicate Field", null, DuplicateSelectedField);
-            var moveUpItem = new ToolStripMenuItem("Move Up", null, MoveFieldUp);
-            var moveDownItem = new ToolStripMenuItem("Move Down", null, MoveFieldDown);
-            fieldMenu.DropDownItems.AddRange(new ToolStripItem[] { addFieldItem, removeFieldItem, duplicateFieldItem, new ToolStripSeparator(), moveUpItem, moveDownItem });
-            contextMenu.Items.Add(fieldMenu);
+            // Add field manipulation options
+            var duplicateFieldItem = new ToolStripMenuItem("Duplicate Field");
+            duplicateFieldItem.Click += DuplicateSelectedField;
+            contextMenu.Items.Add(duplicateFieldItem);
+            
+            var moveUpItem = new ToolStripMenuItem("Move Up");
+            moveUpItem.Click += MoveFieldUp;
+            contextMenu.Items.Add(moveUpItem);
+            
+            var moveDownItem = new ToolStripMenuItem("Move Down");
+            moveDownItem.Click += MoveFieldDown;
+            contextMenu.Items.Add(moveDownItem);
             
             contextMenu.Items.Add(new ToolStripSeparator());
             
-            // Validation
-            var validationMenu = new ToolStripMenuItem("Validation");
-            var validateItem = new ToolStripMenuItem("Validate Fields", null, (sender, e) => BtnValidate_Click(sender, e));
-            var autoFixItem = new ToolStripMenuItem("Auto Fix Issues", null, (sender, e) => BtnAutoFix_Click(sender, e));
-            validationMenu.DropDownItems.AddRange(new ToolStripItem[] { validateItem, autoFixItem });
-            contextMenu.Items.Add(validationMenu);
+            // Add smart null value options for string fields
+            var smartNullItem = new ToolStripMenuItem("Smart Null Value Suggestions");
+            smartNullItem.Click += ShowSmartNullValueSuggestions;
+            contextMenu.Items.Add(smartNullItem);
+            
+            var stringNullMenu = new ToolStripMenuItem("Apply to String Field");
+            
+            var trimIfNotEmptyItem = new ToolStripMenuItem("TRIM_IF_NOT_EMPTY");
+            trimIfNotEmptyItem.Click += ApplyTrimIfNotEmptyToSelectedStringField;
+            stringNullMenu.DropDownItems.Add(trimIfNotEmptyItem);
+            
+            var emptyOrWhitespaceItem = new ToolStripMenuItem("EMPTY_OR_WHITESPACE");
+            emptyOrWhitespaceItem.Click += ApplyEmptyOrWhitespaceToSelectedStringField;
+            stringNullMenu.DropDownItems.Add(emptyOrWhitespaceItem);
+            
+            var emptyOrNullItem = new ToolStripMenuItem("EMPTY_OR_NULL");
+            emptyOrNullItem.Click += ApplyEmptyOrNullToSelectedStringField;
+            stringNullMenu.DropDownItems.Add(emptyOrNullItem);
+            
+            contextMenu.Items.Add(stringNullMenu);
             
             contextMenu.Items.Add(new ToolStripSeparator());
             
-            // Quick Actions
-            var quickMenu = new ToolStripMenuItem("Quick Actions");
-            var toggleModeItem = new ToolStripMenuItem("Toggle Mode", null, (sender, e) => BtnToggleMode_Click(sender, e));
-            var previewItem = new ToolStripMenuItem("Preview Control File", null, (sender, e) => BtnPreview_Click(sender, e));
-            var exportItem = new ToolStripMenuItem("Export .ctl File", null, (sender, e) => BtnExport_Click(sender, e));
-            quickMenu.DropDownItems.AddRange(new ToolStripItem[] { toggleModeItem, previewItem, exportItem });
-            contextMenu.Items.Add(quickMenu);
-            
-            contextMenu.Items.Add(new ToolStripSeparator());
-            
-            // Help
-            var helpItem = new ToolStripMenuItem("Show Keyboard Shortcuts", null, ShowKeyboardShortcuts);
-            contextMenu.Items.Add(helpItem);
+            // Add help options
+            var shortcutsItem = new ToolStripMenuItem("Keyboard Shortcuts");
+            shortcutsItem.Click += ShowKeyboardShortcuts;
+            contextMenu.Items.Add(shortcutsItem);
             
             // Assign context menu to DataGridView
             dgvFields.ContextMenuStrip = contextMenu;
@@ -349,6 +407,42 @@ namespace ControlFileGenerator.WinForms.Forms
             }
         }
 
+        private void ShowSmartNullValueSuggestions(object sender, EventArgs e)
+        {
+            if (dgvFields.SelectedRows.Count > 0)
+            {
+                var selectedField = _fieldDefinitions[dgvFields.SelectedRows[0].Index];
+                var suggestions = IntelligentNullValueProcessor.GetSmartNullValueSuggestions(selectedField);
+
+                if (suggestions.Any())
+                {
+                    var message = new StringBuilder();
+                    message.AppendLine($"Smart Null Value Suggestions for '{selectedField.FieldName}' ({selectedField.SqlType}):");
+                    message.AppendLine();
+                    foreach (var suggestion in suggestions)
+                    {
+                        message.AppendLine($"• {suggestion}");
+                    }
+                    MessageBox.Show(message.ToString(), "Smart Null Value Suggestions", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("No specific smart null value suggestions found for this field.", "No Suggestions", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a field to get smart null value suggestions.", "No Field Selected", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+
+
+
+
         private void ShowKeyboardShortcuts(object sender, EventArgs e)
         {
             var shortcuts = new[]
@@ -372,12 +466,37 @@ namespace ControlFileGenerator.WinForms.Forms
             try
             {
                 var appConfig = _configService.LoadConfiguration();
-                _loaderConfig = appConfig.DefaultLoaderConfig;
+                _loaderConfig = appConfig.DefaultLoaderConfig ?? new LoaderConfig();
+                
+                // Initialize empty field definitions
+                _fieldDefinitions = new List<FieldDefinition>();
+                
+                // Ensure DataGridView is properly initialized
+                SafeDataGridViewOperation(() =>
+                {
+                    RefreshDataGridView();
+                    UpdateButtonStates();
+                });
+                
                 UpdateStatusMessage("Configuration loaded successfully");
             }
             catch (Exception ex)
             {
                 _loggingService.Error("Failed to load configuration", ex);
+                _loaderConfig = new LoaderConfig();
+                _fieldDefinitions = new List<FieldDefinition>();
+                
+                // Fallback initialization
+                try
+                {
+                    RefreshDataGridView();
+                    UpdateButtonStates();
+                }
+                catch (Exception fallbackEx)
+                {
+                    _loggingService.Error("Error in fallback configuration loading", fallbackEx);
+                }
+                
                 UpdateStatusMessage("Failed to load configuration. Using defaults.");
             }
         }
@@ -480,13 +599,49 @@ namespace ControlFileGenerator.WinForms.Forms
 
         private void RefreshDataGridView()
         {
-            dgvFields.DataSource = null;
-            dgvFields.DataSource = _fieldDefinitions;
+            try
+            {
+                // Suspend layout to prevent flickering and binding issues
+                dgvFields.SuspendLayout();
+                
+                // Clear the data source first
+                dgvFields.DataSource = null;
+                
+                // Clear any existing rows
+                dgvFields.Rows.Clear();
+                
+                // Set the data source only if we have data
+                if (_fieldDefinitions != null && _fieldDefinitions.Any())
+                {
+                    dgvFields.DataSource = _fieldDefinitions;
+                }
+                else
+                {
+                    // Create an empty binding source to prevent binding issues
+                    dgvFields.DataSource = new List<FieldDefinition>();
+                }
+                
+                // Resume layout
+                dgvFields.ResumeLayout();
+            }
+            catch (Exception ex)
+            {
+                _loggingService.Error("Error refreshing DataGridView", ex);
+                // Fallback: create empty data source
+                try
+                {
+                    dgvFields.DataSource = new List<FieldDefinition>();
+                }
+                catch (Exception fallbackEx)
+                {
+                    _loggingService.Error("Error in fallback DataGridView refresh", fallbackEx);
+                }
+            }
         }
 
         private void DgvFields_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            if (IsValidCellIndex(e.RowIndex, e.ColumnIndex))
             {
                 try
                 {
@@ -648,6 +803,10 @@ namespace ControlFileGenerator.WinForms.Forms
                 SetColumnReadOnly("EndPosition", false);
                 SetColumnReadOnly("Length", false);
                 SetColumnReadOnly("Order", false);
+                
+                // Disable delimiter editing
+                SetColumnReadOnly("Delimiter", true);
+                SetColumnReadOnly("EnclosedBy", true);
             }
             else
             {
@@ -666,6 +825,10 @@ namespace ControlFileGenerator.WinForms.Forms
                 SetColumnReadOnly("EndPosition", true);
                 SetColumnReadOnly("Length", true);
                 SetColumnReadOnly("Order", true);
+                
+                // Enable delimiter editing
+                SetColumnReadOnly("Delimiter", false);
+                SetColumnReadOnly("EnclosedBy", false);
             }
             
             RefreshDataGridView();
@@ -1070,10 +1233,9 @@ namespace ControlFileGenerator.WinForms.Forms
 
         private void DgvFields_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
         {
-            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+            if (!IsValidCellIndex(e.RowIndex, e.ColumnIndex)) return;
 
-            // Get the field for this row
-            if (e.RowIndex < _fieldDefinitions.Count)
+            try
             {
                 var field = _fieldDefinitions[e.RowIndex];
                 var column = dgvFields.Columns[e.ColumnIndex];
@@ -1100,7 +1262,21 @@ namespace ControlFileGenerator.WinForms.Forms
                         if (!string.IsNullOrEmpty(field.CobolType) && string.IsNullOrEmpty(field.SqlType))
                             e.ToolTipText = "SQL type will be auto-inferred from COBOL type";
                         break;
+                    case 10: // Null If Value
+                        if (!string.IsNullOrEmpty(field.NullIfValue))
+                        {
+                            e.ToolTipText = IntelligentNullValueProcessor.GetNullValueDescription(field.NullIfValue);
+                        }
+                        else
+                        {
+                            e.ToolTipText = "Specify values to treat as NULL. Use smart patterns like 'EMPTY_OR_WHITESPACE' or specific values like '0', 'NULL', etc.";
+                        }
+                        break;
                 }
+            }
+            catch (Exception ex)
+            {
+                _loggingService.Error($"Error in CellToolTipTextNeeded for cell ({e.RowIndex}, {e.ColumnIndex})", ex);
             }
         }
 
@@ -1139,36 +1315,268 @@ namespace ControlFileGenerator.WinForms.Forms
 
         private void DgvFields_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            if (IsValidCellIndex(e.RowIndex, e.ColumnIndex))
             {
-                // Start editing the cell
-                dgvFields.BeginEdit(true);
+                try
+                {
+                    // Start editing the cell
+                    dgvFields.BeginEdit(true);
+                }
+                catch (Exception ex)
+                {
+                    _loggingService.Error($"Error in CellDoubleClick for cell ({e.RowIndex}, {e.ColumnIndex})", ex);
+                }
             }
+        }
+
+        private void DgvFields_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
+        {
+            // Enable auto-complete for text columns
+            if (e.Control is TextBox textBox)
+            {
+                var columnName = dgvFields.CurrentCell?.OwningColumn?.DataPropertyName;
+                
+                // Set up auto-complete based on column type
+                switch (columnName)
+                {
+                    case "FieldName":
+                        SetupFieldNameAutoComplete(textBox);
+                        break;
+                    case "CobolType":
+                        SetupCobolTypeAutoComplete(textBox);
+                        break;
+                    case "Transform":
+                        SetupTransformAutoComplete(textBox);
+                        break;
+                    case "DefaultValue":
+                        SetupDefaultValueAutoComplete(textBox);
+                        break;
+                    case "NullIfValue":
+                        SetupNullIfValueAutoComplete(textBox);
+                        break;
+                    case "Description":
+                        SetupDescriptionAutoComplete(textBox);
+                        break;
+                }
+            }
+        }
+
+        private void SetupFieldNameAutoComplete(TextBox textBox)
+        {
+            textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            
+            var suggestions = new AutoCompleteStringCollection();
+            suggestions.AddRange(new string[]
+            {
+                "EMPNO", "ENAME", "SAL", "DEPTNO", "HIREDATE",
+                "CUSTOMER_ID", "CUSTOMER_NAME", "ORDER_ID", "ORDER_DATE", "AMOUNT",
+                "PRODUCT_ID", "PRODUCT_NAME", "QUANTITY", "PRICE", "TOTAL",
+                "USER_ID", "USERNAME", "EMAIL", "PHONE", "ADDRESS",
+                "TRANSACTION_ID", "ACCOUNT_NUMBER", "BALANCE", "CURRENCY", "STATUS"
+            });
+            textBox.AutoCompleteCustomSource = suggestions;
+        }
+
+        private void SetupCobolTypeAutoComplete(TextBox textBox)
+        {
+            textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            
+            var suggestions = new AutoCompleteStringCollection();
+            suggestions.AddRange(new string[]
+            {
+                "PIC 9(6)", "PIC 9(8)", "PIC 9(10)", "PIC 9(12)",
+                "PIC 9(6)V99", "PIC 9(8)V99", "PIC 9(10)V99",
+                "PIC X(10)", "PIC X(20)", "PIC X(30)", "PIC X(50)", "PIC X(100)",
+                "PIC S9(6)", "PIC S9(8)", "PIC S9(10)",
+                "PIC S9(6)V99", "PIC S9(8)V99", "PIC S9(10)V99",
+                "PIC 9(6) COMP", "PIC 9(8) COMP", "PIC 9(10) COMP",
+                "PIC S9(6) COMP", "PIC S9(8) COMP", "PIC S9(10) COMP"
+            });
+            textBox.AutoCompleteCustomSource = suggestions;
+        }
+
+        private void SetupTransformAutoComplete(TextBox textBox)
+        {
+            textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            
+            var suggestions = new AutoCompleteStringCollection();
+            suggestions.AddRange(new string[]
+            {
+                "UPPER(:FIELD)", "LOWER(:FIELD)", "TRIM(:FIELD)",
+                "LTRIM(:FIELD)", "RTRIM(:FIELD)", "REPLACE(:FIELD, ' ', '')",
+                "TO_DATE(:FIELD, 'YYYY-MM-DD')", "TO_DATE(:FIELD, 'MM/DD/YYYY')",
+                "TO_NUMBER(:FIELD)", "TO_CHAR(:FIELD, '999999.99')",
+                "DECODE(:FIELD, 'Y', 'YES', 'N', 'NO', :FIELD)",
+                "CASE WHEN :FIELD = 'Y' THEN 'YES' WHEN :FIELD = 'N' THEN 'NO' ELSE :FIELD END",
+                "NVL(:FIELD, 'DEFAULT')", "NVL2(:FIELD, :FIELD, 'DEFAULT')",
+                "SUBSTR(:FIELD, 1, 10)", "SUBSTR(:FIELD, 2)", "LENGTH(:FIELD)",
+                "INSTR(:FIELD, ',')", "REGEXP_REPLACE(:FIELD, '[^0-9]', '')"
+            });
+            textBox.AutoCompleteCustomSource = suggestions;
+        }
+
+        private void SetupDefaultValueAutoComplete(TextBox textBox)
+        {
+            textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            
+            var suggestions = new AutoCompleteStringCollection();
+            suggestions.AddRange(new string[]
+            {
+                "0", "1", "-1", "999999", "0.00", "0.0",
+                "''", "'N/A'", "'UNKNOWN'", "'DEFAULT'", "'PENDING'",
+                "SYSDATE", "SYSTIMESTAMP", "USER", "SYSDATE - 1",
+                "TO_DATE('1900-01-01', 'YYYY-MM-DD')", "TO_NUMBER('0')"
+            });
+            textBox.AutoCompleteCustomSource = suggestions;
+        }
+
+        private void SetupNullIfValueAutoComplete(TextBox textBox)
+        {
+            textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            
+            var suggestions = new AutoCompleteStringCollection();
+            suggestions.AddRange(new string[]
+            {
+                // Smart empty data handling options
+                "EMPTY_OR_WHITESPACE", "TRIM_IF_NOT_EMPTY", "EMPTY_OR_NULL", "BLANKS_OR_EMPTY",
+                
+                // Common empty string patterns
+                "''", "' '", "'  '", "'   '", "'    '", "'     '",
+                "'NULL'", "'N/A'", "'UNKNOWN'", "'DEFAULT'", "'EMPTY'", "'BLANK'",
+                "'NONE'", "'NOT_APPLICABLE'", "'UNDEFINED'", "'MISSING'",
+                
+                // Numeric empty indicators
+                "0", "-1", "-999", "-9999", "-99999", "-999999",
+                "999999", "9999999", "99999999", "999999999",
+                "0.00", "0.0", "-0.00", "-0.0",
+                
+                // Date empty indicators
+                "'1900-01-01'", "'0000-00-00'", "'00:00:00'", "'1900-01-01 00:00:00'",
+                "'01/01/1900'", "'01-01-1900'", "'19000101'", "'00000000'",
+                
+                // Special characters
+                "'\\t'", "'\\n'", "'\\r'", "'\\0'", "'\\s'",
+                
+                // Multiple space patterns
+                "'    '", "'     '", "'      '", "'       '", "'        '",
+                
+                // Common business indicators
+                "'PENDING'", "'TBD'", "'TO_BE_DETERMINED'", "'NOT_SET'", "'UNASSIGNED'"
+            });
+            textBox.AutoCompleteCustomSource = suggestions;
+        }
+
+        private void SetupDescriptionAutoComplete(TextBox textBox)
+        {
+            textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            
+            var suggestions = new AutoCompleteStringCollection();
+            suggestions.AddRange(new string[]
+            {
+                "Employee Number", "Employee Name", "Salary", "Department Number",
+                "Hire Date", "Customer ID", "Customer Name", "Order ID", "Order Date",
+                "Amount", "Product ID", "Product Name", "Quantity", "Price", "Total",
+                "User ID", "Username", "Email Address", "Phone Number", "Address",
+                "Transaction ID", "Account Number", "Account Balance", "Currency Code",
+                "Status Code", "Created Date", "Modified Date", "Created By", "Modified By"
+            });
+            textBox.AutoCompleteCustomSource = suggestions;
+        }
+
+        private void DgvFields_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            // Handle DataGridView data errors gracefully
+            e.ThrowException = false; // Prevent the default error dialog
+            
+            // Log the error for debugging
+            _loggingService.Warning($"DataGridView data error at row {e.RowIndex}, column {e.ColumnIndex}: {e.Exception?.Message}");
+            
+            // Optionally show a user-friendly message
+            if (e.Context == DataGridViewDataErrorContexts.Commit)
+            {
+                UpdateStatusMessage("Invalid data entered. Please check the field values.");
+            }
+        }
+
+        private void SafeDataGridViewOperation(Action operation)
+        {
+            try
+            {
+                // Suspend layout and redraw to prevent binding issues
+                dgvFields.SuspendLayout();
+                dgvFields.BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        operation();
+                    }
+                    catch (Exception ex)
+                    {
+                        _loggingService.Error("Error in DataGridView operation", ex);
+                        // Refresh the grid to recover from binding issues
+                        RefreshDataGridView();
+                    }
+                    finally
+                    {
+                        dgvFields.ResumeLayout();
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                _loggingService.Error("Error in SafeDataGridViewOperation", ex);
+                dgvFields.ResumeLayout();
+            }
+        }
+
+        private bool IsValidRowIndex(int rowIndex)
+        {
+            return rowIndex >= 0 && rowIndex < dgvFields.Rows.Count && 
+                   _fieldDefinitions != null && rowIndex < _fieldDefinitions.Count;
+        }
+
+        private bool IsValidCellIndex(int rowIndex, int columnIndex)
+        {
+            return IsValidRowIndex(rowIndex) && 
+                   columnIndex >= 0 && columnIndex < dgvFields.Columns.Count;
         }
 
         private void DgvFields_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
         {
-            if (!_isValidationEnabled || e.RowIndex < 0 || e.RowIndex >= _fieldDefinitions.Count)
+            if (!_isValidationEnabled || !IsValidRowIndex(e.RowIndex))
                 return;
 
-            var field = _fieldDefinitions[e.RowIndex];
-            var status = EdgeCaseHandler.GetFieldValidationStatus(field, _fieldDefinitions);
-
-            var row = dgvFields.Rows[e.RowIndex];
-            switch (status)
+            try
             {
-                case ValidationStatus.Error:
-                    row.DefaultCellStyle.BackColor = Color.LightCoral;
-                    row.DefaultCellStyle.ForeColor = Color.DarkRed;
-                    break;
-                case ValidationStatus.Warning:
-                    row.DefaultCellStyle.BackColor = Color.LightYellow;
-                    row.DefaultCellStyle.ForeColor = Color.DarkOrange;
-                    break;
-                case ValidationStatus.Valid:
-                    row.DefaultCellStyle.BackColor = Color.LightGreen;
-                    row.DefaultCellStyle.ForeColor = Color.DarkGreen;
-                    break;
+                var field = _fieldDefinitions[e.RowIndex];
+                var status = EdgeCaseHandler.GetFieldValidationStatus(field, _fieldDefinitions);
+
+                var row = dgvFields.Rows[e.RowIndex];
+                switch (status)
+                {
+                    case ValidationStatus.Error:
+                        row.DefaultCellStyle.BackColor = Color.LightCoral;
+                        row.DefaultCellStyle.ForeColor = Color.DarkRed;
+                        break;
+                    case ValidationStatus.Warning:
+                        row.DefaultCellStyle.BackColor = Color.LightYellow;
+                        row.DefaultCellStyle.ForeColor = Color.DarkOrange;
+                        break;
+                    case ValidationStatus.Valid:
+                        row.DefaultCellStyle.BackColor = Color.LightGreen;
+                        row.DefaultCellStyle.ForeColor = Color.DarkGreen;
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _loggingService.Error($"Error in RowPrePaint for row {e.RowIndex}", ex);
             }
         }
 
@@ -1186,6 +1594,127 @@ namespace ControlFileGenerator.WinForms.Forms
             }
             
             base.OnFormClosing(e);
+        }
+
+        private void AddSmartNullValueButtons()
+        {
+            // Create a panel for smart null value buttons
+            var smartNullPanel = new Panel
+            {
+                Location = new Point(10, 100),
+                Size = new Size(400, 60),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            var lblSmartNull = new Label
+            {
+                Text = "String Field Smart Null:",
+                Location = new Point(5, 5),
+                Size = new Size(150, 20),
+                Font = new Font(this.Font, FontStyle.Bold)
+            };
+            smartNullPanel.Controls.Add(lblSmartNull);
+
+            var btnTrimIfNotEmpty = new Button
+            {
+                Text = "TRIM_IF_NOT_EMPTY",
+                Location = new Point(5, 30),
+                Size = new Size(120, 25)
+            };
+            btnTrimIfNotEmpty.Click += ApplyTrimIfNotEmptyToSelectedStringField;
+            smartNullPanel.Controls.Add(btnTrimIfNotEmpty);
+
+            var btnEmptyOrWhitespace = new Button
+            {
+                Text = "EMPTY_OR_WHITESPACE",
+                Location = new Point(130, 30),
+                Size = new Size(120, 25)
+            };
+            btnEmptyOrWhitespace.Click += ApplyEmptyOrWhitespaceToSelectedStringField;
+            smartNullPanel.Controls.Add(btnEmptyOrWhitespace);
+
+            var btnEmptyOrNull = new Button
+            {
+                Text = "EMPTY_OR_NULL",
+                Location = new Point(255, 30),
+                Size = new Size(120, 25)
+            };
+            btnEmptyOrNull.Click += ApplyEmptyOrNullToSelectedStringField;
+            smartNullPanel.Controls.Add(btnEmptyOrNull);
+
+            this.Controls.Add(smartNullPanel);
+        }
+
+        private void ApplyTrimIfNotEmptyToSelectedStringField(object sender, EventArgs e)
+        {
+            if (dgvFields.SelectedRows.Count > 0)
+            {
+                var selectedField = _fieldDefinitions[dgvFields.SelectedRows[0].Index];
+                if (selectedField.SqlType == "VARCHAR2" || selectedField.SqlType == "CHAR" || selectedField.SqlType == "CLOB")
+                {
+                    selectedField.NullIfValue = "TRIM_IF_NOT_EMPTY";
+                    RefreshDataGridView();
+                    UpdateStatusMessage($"Applied TRIM_IF_NOT_EMPTY to '{selectedField.FieldName}'");
+                }
+                else
+                {
+                    MessageBox.Show("Please select a string field to apply TRIM_IF_NOT_EMPTY.", "No String Field Selected", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a field to apply TRIM_IF_NOT_EMPTY to.", "No Field Selected", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void ApplyEmptyOrWhitespaceToSelectedStringField(object sender, EventArgs e)
+        {
+            if (dgvFields.SelectedRows.Count > 0)
+            {
+                var selectedField = _fieldDefinitions[dgvFields.SelectedRows[0].Index];
+                if (selectedField.SqlType == "VARCHAR2" || selectedField.SqlType == "CHAR" || selectedField.SqlType == "CLOB")
+                {
+                    selectedField.NullIfValue = "EMPTY_OR_WHITESPACE";
+                    RefreshDataGridView();
+                    UpdateStatusMessage($"Applied EMPTY_OR_WHITESPACE to '{selectedField.FieldName}'");
+                }
+                else
+                {
+                    MessageBox.Show("Please select a string field to apply EMPTY_OR_WHITESPACE.", "No String Field Selected", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a field to apply EMPTY_OR_WHITESPACE to.", "No Field Selected", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void ApplyEmptyOrNullToSelectedStringField(object sender, EventArgs e)
+        {
+            if (dgvFields.SelectedRows.Count > 0)
+            {
+                var selectedField = _fieldDefinitions[dgvFields.SelectedRows[0].Index];
+                if (selectedField.SqlType == "VARCHAR2" || selectedField.SqlType == "CHAR" || selectedField.SqlType == "CLOB")
+                {
+                    selectedField.NullIfValue = "EMPTY_OR_NULL";
+                    RefreshDataGridView();
+                    UpdateStatusMessage($"Applied EMPTY_OR_NULL to '{selectedField.FieldName}'");
+                }
+                else
+                {
+                    MessageBox.Show("Please select a string field to apply EMPTY_OR_NULL.", "No String Field Selected", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a field to apply EMPTY_OR_NULL to.", "No Field Selected", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
     }
 } 

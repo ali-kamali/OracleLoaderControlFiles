@@ -218,13 +218,13 @@ namespace ControlFileGenerator.WinForms.Services
                 EndPosition = null,
                 Length = null,
                 CobolType = string.Empty,
-                SqlType = "VARCHAR2(255)", // Default type
-                Nullable = true,
+                SqlType = "VARCHAR2", // Default type - must match ComboBox items
+                Nullable = "YES", // Must match ComboBox items ("YES" or "NO")
                 Transform = string.Empty,
                 DefaultValue = string.Empty,
                 NullIfValue = string.Empty,
-                EnclosedBy = string.Empty,
-                Delimiter = string.Empty,
+                EnclosedBy = "\"", // Default enclosure - must match ComboBox items
+                Delimiter = ",", // Default delimiter - must match ComboBox items
                 DataFormat = string.Empty,
                 Description = string.Empty
             };

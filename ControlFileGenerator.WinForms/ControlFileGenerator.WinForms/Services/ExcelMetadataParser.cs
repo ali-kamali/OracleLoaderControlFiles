@@ -257,7 +257,7 @@ namespace ControlFileGenerator.WinForms.Services
                     fieldDef.SqlType = value;
                     break;
                 case "Nullable":
-                    fieldDef.Nullable = ParseBooleanValue(value);
+                    fieldDef.Nullable = ParseNullableValue(value);
                     break;
                 case "Transform":
                     fieldDef.Transform = value;
@@ -281,6 +281,23 @@ namespace ControlFileGenerator.WinForms.Services
                     fieldDef.Description = value;
                     break;
             }
+        }
+
+        /// <summary>
+        /// Parses a nullable value from various formats
+        /// </summary>
+        private string ParseNullableValue(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return "YES"; // Default to YES
+
+            var normalizedValue = value.Trim().ToUpper();
+            return normalizedValue switch
+            {
+                "YES" or "Y" or "TRUE" or "1" => "YES",
+                "NO" or "N" or "FALSE" or "0" => "NO",
+                _ => "YES" // Default to YES for unknown values
+            };
         }
 
         /// <summary>

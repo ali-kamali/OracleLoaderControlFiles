@@ -37,7 +37,7 @@ namespace ControlFileGenerator.WinForms.Forms
             // Type information
             textBoxCobolType.Text = _fieldDefinition.CobolType;
             comboBoxSqlType.Text = _fieldDefinition.SqlType;
-            checkBoxNullable.Checked = _fieldDefinition.Nullable ?? true;
+            checkBoxNullable.Checked = _fieldDefinition.Nullable == "YES";
             
             // Transformations and defaults
             textBoxTransform.Text = _fieldDefinition.Transform;
@@ -205,7 +205,7 @@ namespace ControlFileGenerator.WinForms.Forms
             // Type information
             _fieldDefinition.CobolType = textBoxCobolType.Text.Trim();
             _fieldDefinition.SqlType = comboBoxSqlType.Text.Trim();
-            _fieldDefinition.Nullable = checkBoxNullable.Checked;
+            _fieldDefinition.Nullable = checkBoxNullable.Checked ? "YES" : "NO";
             
             // Transformations and defaults
             _fieldDefinition.Transform = textBoxTransform.Text.Trim();
