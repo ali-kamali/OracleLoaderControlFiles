@@ -207,19 +207,16 @@ namespace ControlFileGenerator.WinForms.Services
             }
 
             // Parse data rows
-            int dataStartRow = headerRow + 1;
             var rows = sheetData.Elements<Row>().ToList();
-            for (int i = 0; i < rows.Count; i++)
+            foreach (var row in rows)
             {
-                var row = rows[i];
-                if (row.RowIndex?.Value == dataStartRow)
+                if (row.RowIndex?.Value > headerRow)
                 {
                     var fieldDef = ParseFieldDefinition(row, headers, workbookPart);
                     if (fieldDef != null && !string.IsNullOrWhiteSpace(fieldDef.FieldName))
                     {
                         fieldDefinitions.Add(fieldDef);
                     }
-                    dataStartRow++;
                 }
             }
 
