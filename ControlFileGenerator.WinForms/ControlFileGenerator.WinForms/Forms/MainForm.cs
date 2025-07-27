@@ -539,7 +539,7 @@ namespace ControlFileGenerator.WinForms.Forms
                 if (cboSheet.Items.Count > 0)
                 {
                     cboSheet.SelectedIndex = 0;
-                    await LoadSheetData(filePath, sheetNames[0]);
+                    await LoadSheetData(_currentExcelFile, sheetNames[0]);
                 }
                 else
                 {
@@ -1601,48 +1601,49 @@ namespace ControlFileGenerator.WinForms.Forms
             // Create a panel for smart null value buttons
             var smartNullPanel = new Panel
             {
-                Location = new Point(10, 100),
-                Size = new Size(400, 60),
+                Location = new Point(600, 8),
+                Size = new Size(500, 35),
                 BorderStyle = BorderStyle.FixedSingle
             };
 
             var lblSmartNull = new Label
             {
-                Text = "String Field Smart Null:",
-                Location = new Point(5, 5),
-                Size = new Size(150, 20),
+                Text = "Smart Null:",
+                Location = new Point(5, 10),
+                Size = new Size(80, 15),
                 Font = new Font(this.Font, FontStyle.Bold)
             };
             smartNullPanel.Controls.Add(lblSmartNull);
 
             var btnTrimIfNotEmpty = new Button
             {
-                Text = "TRIM_IF_NOT_EMPTY",
-                Location = new Point(5, 30),
-                Size = new Size(120, 25)
+                Text = "TRIM",
+                Location = new Point(90, 5),
+                Size = new Size(90, 25)
             };
             btnTrimIfNotEmpty.Click += ApplyTrimIfNotEmptyToSelectedStringField;
             smartNullPanel.Controls.Add(btnTrimIfNotEmpty);
 
             var btnEmptyOrWhitespace = new Button
             {
-                Text = "EMPTY_OR_WHITESPACE",
-                Location = new Point(130, 30),
-                Size = new Size(120, 25)
+                Text = "EMPTY",
+                Location = new Point(185, 5),
+                Size = new Size(90, 25)
             };
             btnEmptyOrWhitespace.Click += ApplyEmptyOrWhitespaceToSelectedStringField;
             smartNullPanel.Controls.Add(btnEmptyOrWhitespace);
 
             var btnEmptyOrNull = new Button
             {
-                Text = "EMPTY_OR_NULL",
-                Location = new Point(255, 30),
-                Size = new Size(120, 25)
+                Text = "NULL",
+                Location = new Point(280, 5),
+                Size = new Size(90, 25)
             };
             btnEmptyOrNull.Click += ApplyEmptyOrNullToSelectedStringField;
             smartNullPanel.Controls.Add(btnEmptyOrNull);
 
-            this.Controls.Add(smartNullPanel);
+            // Add to toolbar panel instead of main form to prevent overlaps
+            panelToolbar.Controls.Add(smartNullPanel);
         }
 
         private void ApplyTrimIfNotEmptyToSelectedStringField(object sender, EventArgs e)

@@ -28,267 +28,287 @@ namespace ControlFileGenerator.WinForms.Forms
         /// </summary>
         private void InitializeComponent()
         {
-            this.btnLoadExcel = new System.Windows.Forms.Button();
-            this.cboSheet = new System.Windows.Forms.ComboBox();
-            this.dgvFields = new System.Windows.Forms.DataGridView();
-            this.btnSettings = new System.Windows.Forms.Button();
-            this.btnPreview = new System.Windows.Forms.Button();
-            this.btnExport = new System.Windows.Forms.Button();
-            this.btnDataPreview = new System.Windows.Forms.Button();
-            this.lblStatus = new System.Windows.Forms.Label();
-            this.lblSheet = new System.Windows.Forms.Label();
-            this.panelTop = new System.Windows.Forms.Panel();
-            this.panelBottom = new System.Windows.Forms.Panel();
-            this.panelMain = new System.Windows.Forms.Panel();
-            this.btnStartFromScratch = new System.Windows.Forms.Button();
-            this.btnAddField = new System.Windows.Forms.Button();
-            this.btnRemoveField = new System.Windows.Forms.Button();
-            this.btnToggleMode = new System.Windows.Forms.Button();
-            this.btnValidate = new System.Windows.Forms.Button();
-            this.btnAutoFix = new System.Windows.Forms.Button();
-            this.lblMode = new System.Windows.Forms.Label();
-            this.panelToolbar = new System.Windows.Forms.Panel();
-            this.panelStatus = new System.Windows.Forms.Panel();
-            ((System.ComponentModel.ISupportInitialize)(this.dgvFields)).BeginInit();
-            this.panelTop.SuspendLayout();
-            this.panelBottom.SuspendLayout();
-            this.panelMain.SuspendLayout();
-            this.panelToolbar.SuspendLayout();
-            this.panelStatus.SuspendLayout();
-            this.SuspendLayout();
+            btnLoadExcel = new Button();
+            cboSheet = new ComboBox();
+            dgvFields = new DataGridView();
+            btnSettings = new Button();
+            btnPreview = new Button();
+            btnExport = new Button();
+            btnDataPreview = new Button();
+            lblStatus = new Label();
+            lblSheet = new Label();
+            panelTop = new Panel();
+            panelBottom = new Panel();
+            panelStatus = new Panel();
+            panelToolbar = new Panel();
+            lblMode = new Label();
+            btnAutoFix = new Button();
+            btnValidate = new Button();
+            btnToggleMode = new Button();
+            btnRemoveField = new Button();
+            btnAddField = new Button();
+            btnStartFromScratch = new Button();
+            panelMain = new Panel();
+            ((System.ComponentModel.ISupportInitialize)dgvFields).BeginInit();
+            panelTop.SuspendLayout();
+            panelBottom.SuspendLayout();
+            panelStatus.SuspendLayout();
+            panelToolbar.SuspendLayout();
+            panelMain.SuspendLayout();
+            SuspendLayout();
             // 
             // btnLoadExcel
             // 
-            this.btnLoadExcel.Location = new System.Drawing.Point(12, 12);
-            this.btnLoadExcel.Name = "btnLoadExcel";
-            this.btnLoadExcel.Size = new System.Drawing.Size(140, 30);
-            this.btnLoadExcel.TabIndex = 0;
-            this.btnLoadExcel.Text = "Load Excel Metadata";
-            this.btnLoadExcel.UseVisualStyleBackColor = true;
+            btnLoadExcel.Location = new Point(14, 14);
+            btnLoadExcel.Margin = new Padding(3, 4, 3, 4);
+            btnLoadExcel.Name = "btnLoadExcel";
+            btnLoadExcel.Size = new Size(160, 35);
+            btnLoadExcel.TabIndex = 0;
+            btnLoadExcel.Text = "Load Excel Metadata";
+            btnLoadExcel.UseVisualStyleBackColor = true;
             // 
             // cboSheet
             // 
-            this.cboSheet.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboSheet.Enabled = false;
-            this.cboSheet.FormattingEnabled = true;
-            this.cboSheet.Location = new System.Drawing.Point(220, 15);
-            this.cboSheet.Name = "cboSheet";
-            this.cboSheet.Size = new System.Drawing.Size(200, 25);
-            this.cboSheet.TabIndex = 1;
+            cboSheet.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboSheet.Enabled = false;
+            cboSheet.FormattingEnabled = true;
+            cboSheet.Location = new Point(251, 18);
+            cboSheet.Margin = new Padding(3, 4, 3, 4);
+            cboSheet.Name = "cboSheet";
+            cboSheet.Size = new Size(228, 28);
+            cboSheet.TabIndex = 1;
             // 
             // dgvFields
             // 
-            this.dgvFields.AllowUserToAddRows = false;
-            this.dgvFields.AllowUserToDeleteRows = false;
-            this.dgvFields.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvFields.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dgvFields.Location = new System.Drawing.Point(0, 0);
-            this.dgvFields.Name = "dgvFields";
-            this.dgvFields.RowTemplate.Height = 25;
-            this.dgvFields.Size = new System.Drawing.Size(1164, 580);
-            this.dgvFields.TabIndex = 2;
+            dgvFields.AllowUserToAddRows = false;
+            dgvFields.AllowUserToDeleteRows = false;
+            dgvFields.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvFields.Dock = DockStyle.Fill;
+            dgvFields.Location = new Point(0, 0);
+            dgvFields.Margin = new Padding(3, 4, 3, 4);
+            dgvFields.Name = "dgvFields";
+            dgvFields.RowHeadersWidth = 51;
+            dgvFields.RowTemplate.Height = 25;
+            dgvFields.Size = new Size(1330, 723);
+            dgvFields.TabIndex = 2;
             // 
             // btnSettings
             // 
-            this.btnSettings.Location = new System.Drawing.Point(12, 8);
-            this.btnSettings.Name = "btnSettings";
-            this.btnSettings.Size = new System.Drawing.Size(100, 30);
-            this.btnSettings.TabIndex = 3;
-            this.btnSettings.Text = "Settings";
-            this.btnSettings.UseVisualStyleBackColor = true;
+            btnSettings.Location = new Point(14, 9);
+            btnSettings.Margin = new Padding(3, 4, 3, 4);
+            btnSettings.Name = "btnSettings";
+            btnSettings.Size = new Size(114, 35);
+            btnSettings.TabIndex = 3;
+            btnSettings.Text = "Settings";
+            btnSettings.UseVisualStyleBackColor = true;
             // 
             // btnPreview
             // 
-            this.btnPreview.Enabled = false;
-            this.btnPreview.Location = new System.Drawing.Point(118, 8);
-            this.btnPreview.Name = "btnPreview";
-            this.btnPreview.Size = new System.Drawing.Size(100, 30);
-            this.btnPreview.TabIndex = 4;
-            this.btnPreview.Text = "Preview";
-            this.btnPreview.UseVisualStyleBackColor = true;
+            btnPreview.Enabled = false;
+            btnPreview.Location = new Point(143, 9);
+            btnPreview.Margin = new Padding(3, 4, 3, 4);
+            btnPreview.Name = "btnPreview";
+            btnPreview.Size = new Size(114, 35);
+            btnPreview.TabIndex = 4;
+            btnPreview.Text = "Preview";
+            btnPreview.UseVisualStyleBackColor = true;
             // 
             // btnExport
             // 
-            this.btnExport.Enabled = false;
-            this.btnExport.Location = new System.Drawing.Point(224, 8);
-            this.btnExport.Name = "btnExport";
-            this.btnExport.Size = new System.Drawing.Size(100, 30);
-            this.btnExport.TabIndex = 5;
-            this.btnExport.Text = "Export .ctl";
-            this.btnExport.UseVisualStyleBackColor = true;
+            btnExport.Enabled = false;
+            btnExport.Location = new Point(269, 9);
+            btnExport.Margin = new Padding(3, 4, 3, 4);
+            btnExport.Name = "btnExport";
+            btnExport.Size = new Size(114, 35);
+            btnExport.TabIndex = 5;
+            btnExport.Text = "Export .ctl";
+            btnExport.UseVisualStyleBackColor = true;
             // 
             // btnDataPreview
             // 
-            this.btnDataPreview.Enabled = false;
-            this.btnDataPreview.Location = new System.Drawing.Point(330, 8);
-            this.btnDataPreview.Name = "btnDataPreview";
-            this.btnDataPreview.Size = new System.Drawing.Size(100, 30);
-            this.btnDataPreview.TabIndex = 6;
-            this.btnDataPreview.Text = "Data Preview";
-            this.btnDataPreview.UseVisualStyleBackColor = true;
+            btnDataPreview.Enabled = false;
+            btnDataPreview.Location = new Point(394, 9);
+            btnDataPreview.Margin = new Padding(3, 4, 3, 4);
+            btnDataPreview.Name = "btnDataPreview";
+            btnDataPreview.Size = new Size(114, 35);
+            btnDataPreview.TabIndex = 6;
+            btnDataPreview.Text = "Data Preview";
+            btnDataPreview.UseVisualStyleBackColor = true;
             // 
             // lblStatus
             // 
-            this.lblStatus.AutoSize = true;
-            this.lblStatus.Location = new System.Drawing.Point(12, 15);
-            this.lblStatus.Name = "lblStatus";
-            this.lblStatus.Size = new System.Drawing.Size(100, 17);
-            this.lblStatus.TabIndex = 6;
-            this.lblStatus.Text = "Ready";
+            lblStatus.AutoSize = true;
+            lblStatus.Location = new Point(14, 18);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(50, 20);
+            lblStatus.TabIndex = 6;
+            lblStatus.Text = "Ready";
             // 
             // lblSheet
             // 
-            this.lblSheet.AutoSize = true;
-            this.lblSheet.Location = new System.Drawing.Point(170, 18);
-            this.lblSheet.Name = "lblSheet";
-            this.lblSheet.Size = new System.Drawing.Size(44, 17);
-            this.lblSheet.TabIndex = 7;
-            this.lblSheet.Text = "Sheet:";
+            lblSheet.AutoSize = true;
+            lblSheet.Location = new Point(194, 21);
+            lblSheet.Name = "lblSheet";
+            lblSheet.Size = new Size(49, 20);
+            lblSheet.TabIndex = 7;
+            lblSheet.Text = "Sheet:";
             // 
             // panelTop
             // 
-            this.panelTop.Controls.Add(this.lblSheet);
-            this.panelTop.Controls.Add(this.cboSheet);
-            this.panelTop.Controls.Add(this.btnLoadExcel);
-            this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panelTop.Location = new System.Drawing.Point(0, 0);
-            this.panelTop.Name = "panelTop";
-            this.panelTop.Size = new System.Drawing.Size(1164, 60);
-            this.panelTop.TabIndex = 8;
+            panelTop.Controls.Add(lblSheet);
+            panelTop.Controls.Add(cboSheet);
+            panelTop.Controls.Add(btnLoadExcel);
+            panelTop.Dock = DockStyle.Top;
+            panelTop.Location = new Point(0, 0);
+            panelTop.Margin = new Padding(3, 4, 3, 4);
+            panelTop.Name = "panelTop";
+            panelTop.Size = new Size(1330, 71);
+            panelTop.TabIndex = 8;
             // 
             // panelBottom
             // 
-            this.panelBottom.Controls.Add(this.panelStatus);
-            this.panelBottom.Controls.Add(this.panelToolbar);
-            this.panelBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelBottom.Location = new System.Drawing.Point(0, 640);
-            this.panelBottom.Name = "panelBottom";
-            this.panelBottom.Size = new System.Drawing.Size(1164, 120);
-            this.panelBottom.TabIndex = 9;
-            // 
-            // panelMain
-            // 
-            this.panelMain.Controls.Add(this.dgvFields);
-            this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelMain.Location = new System.Drawing.Point(0, 60);
-            this.panelMain.Name = "panelMain";
-            this.panelMain.Size = new System.Drawing.Size(1164, 580);
-            this.panelMain.TabIndex = 10;
-            // 
-            // btnStartFromScratch
-            // 
-            this.btnStartFromScratch.Location = new System.Drawing.Point(12, 8);
-            this.btnStartFromScratch.Name = "btnStartFromScratch";
-            this.btnStartFromScratch.Size = new System.Drawing.Size(120, 30);
-            this.btnStartFromScratch.TabIndex = 11;
-            this.btnStartFromScratch.Text = "Start from Scratch";
-            this.btnStartFromScratch.UseVisualStyleBackColor = true;
-            // 
-            // btnAddField
-            // 
-            this.btnAddField.Location = new System.Drawing.Point(138, 8);
-            this.btnAddField.Name = "btnAddField";
-            this.btnAddField.Size = new System.Drawing.Size(80, 30);
-            this.btnAddField.TabIndex = 12;
-            this.btnAddField.Text = "Add Field";
-            this.btnAddField.UseVisualStyleBackColor = true;
-            // 
-            // btnRemoveField
-            // 
-            this.btnRemoveField.Location = new System.Drawing.Point(224, 8);
-            this.btnRemoveField.Name = "btnRemoveField";
-            this.btnRemoveField.Size = new System.Drawing.Size(90, 30);
-            this.btnRemoveField.TabIndex = 13;
-            this.btnRemoveField.Text = "Remove Field";
-            this.btnRemoveField.UseVisualStyleBackColor = true;
-            // 
-            // btnToggleMode
-            // 
-            this.btnToggleMode.Location = new System.Drawing.Point(320, 8);
-            this.btnToggleMode.Name = "btnToggleMode";
-            this.btnToggleMode.Size = new System.Drawing.Size(100, 30);
-            this.btnToggleMode.TabIndex = 14;
-            this.btnToggleMode.Text = "Toggle Mode";
-            this.btnToggleMode.UseVisualStyleBackColor = true;
-            // 
-            // btnValidate
-            // 
-            this.btnValidate.Location = new System.Drawing.Point(426, 8);
-            this.btnValidate.Name = "btnValidate";
-            this.btnValidate.Size = new System.Drawing.Size(80, 30);
-            this.btnValidate.TabIndex = 15;
-            this.btnValidate.Text = "Validate";
-            this.btnValidate.UseVisualStyleBackColor = true;
-            // 
-            // btnAutoFix
-            // 
-            this.btnAutoFix.Location = new System.Drawing.Point(512, 8);
-            this.btnAutoFix.Name = "btnAutoFix";
-            this.btnAutoFix.Size = new System.Drawing.Size(80, 30);
-            this.btnAutoFix.TabIndex = 16;
-            this.btnAutoFix.Text = "Auto Fix";
-            this.btnAutoFix.UseVisualStyleBackColor = true;
-            // 
-            // lblMode
-            // 
-            this.lblMode.AutoSize = true;
-            this.lblMode.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.lblMode.Location = new System.Drawing.Point(600, 15);
-            this.lblMode.Name = "lblMode";
-            this.lblMode.Size = new System.Drawing.Size(89, 15);
-            this.lblMode.TabIndex = 17;
-            this.lblMode.Text = "Fixed Width";
-            // 
-            // panelToolbar
-            // 
-            this.panelToolbar.Controls.Add(this.lblMode);
-            this.panelToolbar.Controls.Add(this.btnAutoFix);
-            this.panelToolbar.Controls.Add(this.btnValidate);
-            this.panelToolbar.Controls.Add(this.btnToggleMode);
-            this.panelToolbar.Controls.Add(this.btnRemoveField);
-            this.panelToolbar.Controls.Add(this.btnAddField);
-            this.panelToolbar.Controls.Add(this.btnStartFromScratch);
-            this.panelToolbar.Controls.Add(this.btnSettings);
-            this.panelToolbar.Controls.Add(this.btnPreview);
-            this.panelToolbar.Controls.Add(this.btnExport);
-            this.panelToolbar.Controls.Add(this.btnDataPreview);
-            this.panelToolbar.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panelToolbar.Location = new System.Drawing.Point(0, 0);
-            this.panelToolbar.Name = "panelToolbar";
-            this.panelToolbar.Size = new System.Drawing.Size(1164, 50);
-            this.panelToolbar.TabIndex = 18;
+            panelBottom.Controls.Add(panelStatus);
+            panelBottom.Controls.Add(panelToolbar);
+            panelBottom.Dock = DockStyle.Bottom;
+            panelBottom.Location = new Point(0, 794);
+            panelBottom.Margin = new Padding(3, 4, 3, 4);
+            panelBottom.Name = "panelBottom";
+            panelBottom.Size = new Size(1330, 141);
+            panelBottom.TabIndex = 9;
             // 
             // panelStatus
             // 
-            this.panelStatus.Controls.Add(this.lblStatus);
-            this.panelStatus.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelStatus.Location = new System.Drawing.Point(0, 50);
-            this.panelStatus.Name = "panelStatus";
-            this.panelStatus.Size = new System.Drawing.Size(1164, 70);
-            this.panelStatus.TabIndex = 19;
+            panelStatus.Controls.Add(lblStatus);
+            panelStatus.Dock = DockStyle.Fill;
+            panelStatus.Location = new Point(0, 100);
+            panelStatus.Margin = new Padding(3, 4, 3, 4);
+            panelStatus.Name = "panelStatus";
+            panelStatus.Size = new Size(1330, 41);
+            panelStatus.TabIndex = 19;
+            // 
+            // panelToolbar
+            // 
+            panelToolbar.Controls.Add(lblMode);
+            panelToolbar.Controls.Add(btnAutoFix);
+            panelToolbar.Controls.Add(btnValidate);
+            panelToolbar.Controls.Add(btnToggleMode);
+            panelToolbar.Controls.Add(btnRemoveField);
+            panelToolbar.Controls.Add(btnAddField);
+            panelToolbar.Controls.Add(btnStartFromScratch);
+            panelToolbar.Controls.Add(btnSettings);
+            panelToolbar.Controls.Add(btnPreview);
+            panelToolbar.Controls.Add(btnExport);
+            panelToolbar.Controls.Add(btnDataPreview);
+            panelToolbar.Dock = DockStyle.Top;
+            panelToolbar.Location = new Point(0, 0);
+            panelToolbar.Margin = new Padding(3, 4, 3, 4);
+            panelToolbar.Name = "panelToolbar";
+            panelToolbar.Size = new Size(1330, 100);
+            panelToolbar.TabIndex = 18;
+            // 
+            // lblMode
+            // 
+            lblMode.AutoSize = true;
+            lblMode.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblMode.Location = new Point(735, 68);
+            lblMode.Name = "lblMode";
+            lblMode.Size = new Size(93, 20);
+            lblMode.TabIndex = 17;
+            lblMode.Text = "Fixed Width";
+            // 
+            // btnAutoFix
+            // 
+            btnAutoFix.Location = new Point(611, 53);
+            btnAutoFix.Margin = new Padding(3, 4, 3, 4);
+            btnAutoFix.Name = "btnAutoFix";
+            btnAutoFix.Size = new Size(91, 35);
+            btnAutoFix.TabIndex = 16;
+            btnAutoFix.Text = "Auto Fix";
+            btnAutoFix.UseVisualStyleBackColor = true;
+            // 
+            // btnValidate
+            // 
+            btnValidate.Location = new Point(509, 53);
+            btnValidate.Margin = new Padding(3, 4, 3, 4);
+            btnValidate.Name = "btnValidate";
+            btnValidate.Size = new Size(91, 35);
+            btnValidate.TabIndex = 15;
+            btnValidate.Text = "Validate";
+            btnValidate.UseVisualStyleBackColor = true;
+            // 
+            // btnToggleMode
+            // 
+            btnToggleMode.Location = new Point(383, 53);
+            btnToggleMode.Margin = new Padding(3, 4, 3, 4);
+            btnToggleMode.Name = "btnToggleMode";
+            btnToggleMode.Size = new Size(114, 35);
+            btnToggleMode.TabIndex = 14;
+            btnToggleMode.Text = "Toggle Mode";
+            btnToggleMode.UseVisualStyleBackColor = true;
+            // 
+            // btnRemoveField
+            // 
+            btnRemoveField.Location = new Point(269, 53);
+            btnRemoveField.Margin = new Padding(3, 4, 3, 4);
+            btnRemoveField.Name = "btnRemoveField";
+            btnRemoveField.Size = new Size(103, 35);
+            btnRemoveField.TabIndex = 13;
+            btnRemoveField.Text = "Remove Field";
+            btnRemoveField.UseVisualStyleBackColor = true;
+            // 
+            // btnAddField
+            // 
+            btnAddField.Location = new Point(166, 53);
+            btnAddField.Margin = new Padding(3, 4, 3, 4);
+            btnAddField.Name = "btnAddField";
+            btnAddField.Size = new Size(91, 35);
+            btnAddField.TabIndex = 12;
+            btnAddField.Text = "Add Field";
+            btnAddField.UseVisualStyleBackColor = true;
+            // 
+            // btnStartFromScratch
+            // 
+            btnStartFromScratch.Location = new Point(14, 53);
+            btnStartFromScratch.Margin = new Padding(3, 4, 3, 4);
+            btnStartFromScratch.Name = "btnStartFromScratch";
+            btnStartFromScratch.Size = new Size(137, 35);
+            btnStartFromScratch.TabIndex = 11;
+            btnStartFromScratch.Text = "Start from Scratch";
+            btnStartFromScratch.UseVisualStyleBackColor = true;
+            // 
+            // panelMain
+            // 
+            panelMain.Controls.Add(dgvFields);
+            panelMain.Dock = DockStyle.Fill;
+            panelMain.Location = new Point(0, 71);
+            panelMain.Margin = new Padding(3, 4, 3, 4);
+            panelMain.Name = "panelMain";
+            panelMain.Size = new Size(1330, 723);
+            panelMain.TabIndex = 10;
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1164, 760);
-            this.Controls.Add(this.panelMain);
-            this.Controls.Add(this.panelBottom);
-            this.Controls.Add(this.panelTop);
-            this.MinimumSize = new System.Drawing.Size(800, 600);
-            this.Name = "MainForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Oracle SQL*Loader Control File Generator";
-            ((System.ComponentModel.ISupportInitialize)(this.dgvFields)).EndInit();
-            this.panelTop.ResumeLayout(false);
-            this.panelTop.PerformLayout();
-            this.panelBottom.ResumeLayout(false);
-            this.panelMain.ResumeLayout(false);
-            this.panelToolbar.ResumeLayout(false);
-            this.panelToolbar.PerformLayout();
-            this.panelStatus.ResumeLayout(false);
-            this.panelStatus.PerformLayout();
-            this.ResumeLayout(false);
+            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(1330, 935);
+            Controls.Add(panelMain);
+            Controls.Add(panelBottom);
+            Controls.Add(panelTop);
+            Margin = new Padding(3, 4, 3, 4);
+            MinimumSize = new Size(912, 698);
+            Name = "MainForm";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "Oracle SQL*Loader Control File Generator";
+            ((System.ComponentModel.ISupportInitialize)dgvFields).EndInit();
+            panelTop.ResumeLayout(false);
+            panelTop.PerformLayout();
+            panelBottom.ResumeLayout(false);
+            panelStatus.ResumeLayout(false);
+            panelStatus.PerformLayout();
+            panelToolbar.ResumeLayout(false);
+            panelToolbar.PerformLayout();
+            panelMain.ResumeLayout(false);
+            ResumeLayout(false);
         }
 
         #endregion
