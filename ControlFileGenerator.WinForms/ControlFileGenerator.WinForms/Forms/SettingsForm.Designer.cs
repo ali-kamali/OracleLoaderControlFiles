@@ -54,8 +54,11 @@ namespace ControlFileGenerator.WinForms.Forms
             this.lblDiscardfile = new System.Windows.Forms.Label();
             this.txtDiscardfile = new System.Windows.Forms.TextBox();
             this.btnBrowseDiscardfile = new System.Windows.Forms.Button();
-            this.lblEncoding = new System.Windows.Forms.Label();
-            this.txtEncoding = new System.Windows.Forms.TextBox();
+            this.lblGlobalFileEncoding = new System.Windows.Forms.Label();
+            this.cboGlobalFileEncoding = new System.Windows.Forms.ComboBox();
+            this.chkUseSpecificPartition = new System.Windows.Forms.CheckBox();
+            this.lblPartitionName = new System.Windows.Forms.Label();
+            this.txtPartitionName = new System.Windows.Forms.TextBox();
             
             // Advanced Options Controls
             this.chkDirectPath = new System.Windows.Forms.CheckBox();
@@ -118,8 +121,11 @@ namespace ControlFileGenerator.WinForms.Forms
             // 
             // tabFileReferences
             // 
-            this.tabFileReferences.Controls.Add(this.txtEncoding);
-            this.tabFileReferences.Controls.Add(this.lblEncoding);
+            this.tabFileReferences.Controls.Add(this.txtPartitionName);
+            this.tabFileReferences.Controls.Add(this.lblPartitionName);
+            this.tabFileReferences.Controls.Add(this.chkUseSpecificPartition);
+            this.tabFileReferences.Controls.Add(this.cboGlobalFileEncoding);
+            this.tabFileReferences.Controls.Add(this.lblGlobalFileEncoding);
             this.tabFileReferences.Controls.Add(this.btnBrowseDiscardfile);
             this.tabFileReferences.Controls.Add(this.txtDiscardfile);
             this.tabFileReferences.Controls.Add(this.lblDiscardfile);
@@ -280,17 +286,51 @@ namespace ControlFileGenerator.WinForms.Forms
             this.btnBrowseDiscardfile.UseVisualStyleBackColor = true;
             this.btnBrowseDiscardfile.Click += new System.EventHandler(this.btnBrowseDiscardfile_Click);
             
-            this.lblEncoding.AutoSize = true;
-            this.lblEncoding.Location = new System.Drawing.Point(20, 140);
-            this.lblEncoding.Name = "lblEncoding";
-            this.lblEncoding.Size = new System.Drawing.Size(80, 17);
-            this.lblEncoding.TabIndex = 9;
-            this.lblEncoding.Text = "Encoding:";
+
             
-            this.txtEncoding.Location = new System.Drawing.Point(120, 137);
-            this.txtEncoding.Name = "txtEncoding";
-            this.txtEncoding.Size = new System.Drawing.Size(200, 23);
-            this.txtEncoding.TabIndex = 10;
+            this.lblGlobalFileEncoding.AutoSize = true;
+            this.lblGlobalFileEncoding.Location = new System.Drawing.Point(20, 180);
+            this.lblGlobalFileEncoding.Name = "lblGlobalFileEncoding";
+            this.lblGlobalFileEncoding.Size = new System.Drawing.Size(120, 17);
+            this.lblGlobalFileEncoding.TabIndex = 11;
+            this.lblGlobalFileEncoding.Text = "Global File Encoding:";
+            
+            this.cboGlobalFileEncoding.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboGlobalFileEncoding.FormattingEnabled = true;
+            this.cboGlobalFileEncoding.Items.AddRange(new object[] {
+                "UTF8",
+                "WE8ISO8859P1",
+                "AL32UTF8",
+                "JA16SJIS",
+                "ZHS16GBK",
+                "KO16MSWIN949"});
+            this.cboGlobalFileEncoding.Location = new System.Drawing.Point(150, 177);
+            this.cboGlobalFileEncoding.Name = "cboGlobalFileEncoding";
+            this.cboGlobalFileEncoding.Size = new System.Drawing.Size(170, 25);
+            this.cboGlobalFileEncoding.TabIndex = 12;
+            
+            this.chkUseSpecificPartition.AutoSize = true;
+            this.chkUseSpecificPartition.Location = new System.Drawing.Point(20, 220);
+            this.chkUseSpecificPartition.Name = "chkUseSpecificPartition";
+            this.chkUseSpecificPartition.Size = new System.Drawing.Size(200, 21);
+            this.chkUseSpecificPartition.TabIndex = 13;
+            this.chkUseSpecificPartition.Text = "Load into specific partition (advanced)";
+            this.chkUseSpecificPartition.UseVisualStyleBackColor = true;
+            this.chkUseSpecificPartition.CheckedChanged += new System.EventHandler(this.chkUseSpecificPartition_CheckedChanged);
+            
+            this.lblPartitionName.AutoSize = true;
+            this.lblPartitionName.Location = new System.Drawing.Point(40, 250);
+            this.lblPartitionName.Name = "lblPartitionName";
+            this.lblPartitionName.Size = new System.Drawing.Size(100, 17);
+            this.lblPartitionName.TabIndex = 14;
+            this.lblPartitionName.Text = "Partition Name:";
+            this.lblPartitionName.Enabled = false;
+            
+            this.txtPartitionName.Location = new System.Drawing.Point(150, 247);
+            this.txtPartitionName.Name = "txtPartitionName";
+            this.txtPartitionName.Size = new System.Drawing.Size(200, 23);
+            this.txtPartitionName.TabIndex = 15;
+            this.txtPartitionName.Enabled = false;
             
             // 
             // Advanced Options Controls
@@ -498,8 +538,11 @@ namespace ControlFileGenerator.WinForms.Forms
         private System.Windows.Forms.Label lblDiscardfile;
         private System.Windows.Forms.TextBox txtDiscardfile;
         private System.Windows.Forms.Button btnBrowseDiscardfile;
-        private System.Windows.Forms.Label lblEncoding;
-        private System.Windows.Forms.TextBox txtEncoding;
+        private System.Windows.Forms.Label lblGlobalFileEncoding;
+        private System.Windows.Forms.ComboBox cboGlobalFileEncoding;
+        private System.Windows.Forms.CheckBox chkUseSpecificPartition;
+        private System.Windows.Forms.Label lblPartitionName;
+        private System.Windows.Forms.TextBox txtPartitionName;
         
         // Advanced Options Controls
         private System.Windows.Forms.CheckBox chkDirectPath;

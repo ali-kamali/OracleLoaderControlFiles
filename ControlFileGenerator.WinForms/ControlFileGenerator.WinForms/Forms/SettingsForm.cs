@@ -25,7 +25,12 @@ namespace ControlFileGenerator.WinForms.Forms
             txtInfile.Text = LoaderConfig.Infile;
             txtBadfile.Text = LoaderConfig.Badfile;
             txtDiscardfile.Text = LoaderConfig.Discardfile;
-            txtEncoding.Text = LoaderConfig.Encoding;
+            cboGlobalFileEncoding.Text = LoaderConfig.GlobalFileEncoding;
+            chkUseSpecificPartition.Checked = LoaderConfig.UseSpecificPartition;
+            txtPartitionName.Text = LoaderConfig.PartitionName;
+            
+            // Update partition controls visibility
+            UpdatePartitionControlsVisibility();
 
             // Advanced Options
             chkDirectPath.Checked = LoaderConfig.UseDirectPath;
@@ -52,7 +57,9 @@ namespace ControlFileGenerator.WinForms.Forms
             LoaderConfig.Infile = txtInfile.Text.Trim();
             LoaderConfig.Badfile = txtBadfile.Text.Trim();
             LoaderConfig.Discardfile = txtDiscardfile.Text.Trim();
-            LoaderConfig.Encoding = txtEncoding.Text.Trim();
+            LoaderConfig.GlobalFileEncoding = cboGlobalFileEncoding.Text;
+            LoaderConfig.UseSpecificPartition = chkUseSpecificPartition.Checked;
+            LoaderConfig.PartitionName = txtPartitionName.Text.Trim();
 
             // Advanced Options
             LoaderConfig.UseDirectPath = chkDirectPath.Checked;
@@ -158,6 +165,18 @@ namespace ControlFileGenerator.WinForms.Forms
                 LoaderConfig = new LoaderConfig();
                 LoadSettingsToForm();
             }
+        }
+
+        private void chkUseSpecificPartition_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdatePartitionControlsVisibility();
+        }
+
+        private void UpdatePartitionControlsVisibility()
+        {
+            bool isPartitionEnabled = chkUseSpecificPartition.Checked;
+            lblPartitionName.Enabled = isPartitionEnabled;
+            txtPartitionName.Enabled = isPartitionEnabled;
         }
     }
 } 

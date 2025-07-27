@@ -19,9 +19,6 @@ namespace ControlFileGenerator.WinForms.Models
         [DisplayName("Discard File")]
         public string Discardfile { get; set; } = string.Empty;
 
-        [DisplayName("Encoding")]
-        public string Encoding { get; set; } = "UTF8";
-
         [DisplayName("Trailing Null Columns")]
         public bool TrailingNullCols { get; set; } = false;
 
@@ -45,6 +42,15 @@ namespace ControlFileGenerator.WinForms.Models
 
         [DisplayName("Character Set")]
         public string CharacterSet { get; set; } = "UTF8";
+
+        [DisplayName("Global File Encoding")]
+        public string GlobalFileEncoding { get; set; } = "UTF8";
+
+        [DisplayName("Use Specific Partition")]
+        public bool UseSpecificPartition { get; set; } = false;
+
+        [DisplayName("Partition Name")]
+        public string PartitionName { get; set; } = string.Empty;
 
         [DisplayName("Field Terminator")]
         public string FieldTerminator { get; set; } = ",";
@@ -79,6 +85,30 @@ namespace ControlFileGenerator.WinForms.Models
                 return string.Empty;
             }
             return $"CHARACTERSET {CharacterSet}";
+        }
+
+        /// <summary>
+        /// Gets the global file encoding specification if different from default
+        /// </summary>
+        public string GetGlobalFileEncodingString()
+        {
+            if (string.IsNullOrEmpty(GlobalFileEncoding) || GlobalFileEncoding.Equals("UTF8", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+            return $"CHARACTERSET {GlobalFileEncoding}";
+        }
+
+        /// <summary>
+        /// Gets the partition specification if enabled
+        /// </summary>
+        public string GetPartitionString()
+        {
+            if (!UseSpecificPartition || string.IsNullOrWhiteSpace(PartitionName))
+            {
+                return string.Empty;
+            }
+            return $"PARTITION ({PartitionName})";
         }
 
         /// <summary>
@@ -189,7 +219,6 @@ namespace ControlFileGenerator.WinForms.Models
                 Infile = this.Infile,
                 Badfile = this.Badfile,
                 Discardfile = this.Discardfile,
-                Encoding = this.Encoding,
                 TrailingNullCols = this.TrailingNullCols,
                 UseDirectPath = this.UseDirectPath,
                 MaxErrors = this.MaxErrors,
@@ -198,6 +227,9 @@ namespace ControlFileGenerator.WinForms.Models
                 SkipRows = this.SkipRows,
                 LoadRows = this.LoadRows,
                 CharacterSet = this.CharacterSet,
+                GlobalFileEncoding = this.GlobalFileEncoding,
+                UseSpecificPartition = this.UseSpecificPartition,
+                PartitionName = this.PartitionName,
                 FieldTerminator = this.FieldTerminator,
                 EnclosedBy = this.EnclosedBy,
                 OptionallyEnclosed = this.OptionallyEnclosed,

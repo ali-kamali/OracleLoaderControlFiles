@@ -27,11 +27,11 @@ namespace ControlFileGenerator.WinForms.Services
             // Add LOAD DATA section
             lines.Add("LOAD DATA");
 
-            // Add character set if specified
-            var characterSet = config.GetCharacterSetString();
-            if (!string.IsNullOrEmpty(characterSet))
+            // Add global file encoding if specified
+            var globalFileEncoding = config.GetGlobalFileEncodingString();
+            if (!string.IsNullOrEmpty(globalFileEncoding))
             {
-                lines.Add(characterSet);
+                lines.Add(globalFileEncoding);
             }
 
             // Add file specifications
@@ -50,6 +50,14 @@ namespace ControlFileGenerator.WinForms.Services
 
             // Add INTO TABLE section
             lines.Add($"INTO TABLE {config.TableName.ToUpper()}");
+            
+            // Add partition specification if enabled
+            var partitionSpec = config.GetPartitionString();
+            if (!string.IsNullOrEmpty(partitionSpec))
+            {
+                lines.Add(partitionSpec);
+            }
+            
             lines.Add(config.GetLoadModeString());
 
             // Determine format: use forced mode if specified, otherwise auto-detect
