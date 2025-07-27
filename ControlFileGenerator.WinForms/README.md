@@ -174,7 +174,7 @@ ControlFileGenerator.WinForms/
 ### Dependencies
 
 - .NET 8.0
-- EPPlus (for Excel file parsing)
+- Microsoft Open XML SDK (for Excel file parsing)
 - Windows Forms
 
 ## License

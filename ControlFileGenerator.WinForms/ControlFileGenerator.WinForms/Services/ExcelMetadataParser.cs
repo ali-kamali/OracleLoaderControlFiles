@@ -1,5 +1,7 @@
 using ControlFileGenerator.WinForms.Models;
-using OfficeOpenXml;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 
 namespace ControlFileGenerator.WinForms.Services
@@ -92,21 +94,23 @@ namespace ControlFileGenerator.WinForms.Services
         /// </summary>
         public async Task<List<FieldDefinition>> ParseExcelFileAsync(string filePath, string? sheetName = null)
         {
-            // EPPlus 8.x license setup
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
-            using var package = new ExcelPackage(new FileInfo(filePath));
-            
-            var worksheet = string.IsNullOrEmpty(sheetName) 
-                ? package.Workbook.Worksheets.FirstOrDefault() 
-                : package.Workbook.Worksheets[sheetName];
-
-            if (worksheet == null)
+            return await Task.Run(() =>
             {
-                throw new InvalidOperationException($"Worksheet '{sheetName ?? "first"}' not found in Excel file");
-            }
+                using var spreadsheetDocument = SpreadsheetDocument.Open(filePath, false);
+                var workbookPart = spreadsheetDocument.WorkbookPart;
+                if (workbookPart == null)
+                {
+                    throw new InvalidOperationException("Invalid Excel file: No workbook part found");
+                }
 
-            return await ParseWorksheetAsync(worksheet);
+                var worksheetPart = GetWorksheetPart(workbookPart, sheetName);
+                if (worksheetPart == null)
+                {
+                    throw new InvalidOperationException($"Worksheet '{sheetName ?? "first"}' not found in Excel file");
+                }
+
+                return ParseWorksheet(worksheetPart, workbookPart);
+            });
         }
 
         /// <summary>
@@ -114,29 +118,89 @@ namespace ControlFileGenerator.WinForms.Services
         /// </summary>
         public async Task<List<string>> GetSheetNamesAsync(string filePath)
         {
-            // EPPlus 8.x license setup
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            return await Task.Run(() =>
+            {
+                using var spreadsheetDocument = SpreadsheetDocument.Open(filePath, false);
+                var workbookPart = spreadsheetDocument.WorkbookPart;
+                if (workbookPart == null)
+                {
+                    throw new InvalidOperationException("Invalid Excel file: No workbook part found");
+                }
 
-            using var package = new ExcelPackage(new FileInfo(filePath));
-            return package.Workbook.Worksheets.Select(ws => ws.Name).ToList();
+                var workbook = workbookPart.Workbook;
+                var sheets = workbook.GetFirstChild<Sheets>();
+                if (sheets == null)
+                {
+                    return new List<string>();
+                }
+
+                var sheetNames = new List<string>();
+                foreach (var sheet in sheets.Elements<Sheet>())
+                {
+                    if (sheet.Name?.Value != null)
+                    {
+                        sheetNames.Add(sheet.Name.Value);
+                    }
+                }
+
+                return sheetNames;
+            });
+        }
+
+        /// <summary>
+        /// Gets the worksheet part by name or returns the first one
+        /// </summary>
+        private WorksheetPart GetWorksheetPart(WorkbookPart workbookPart, string? sheetName)
+        {
+            var workbook = workbookPart.Workbook;
+            var sheets = workbook.GetFirstChild<Sheets>();
+            if (sheets == null)
+            {
+                return null;
+            }
+
+            Sheet targetSheet = null;
+            if (string.IsNullOrEmpty(sheetName))
+            {
+                targetSheet = sheets.Elements<Sheet>().FirstOrDefault();
+            }
+            else
+            {
+                targetSheet = sheets.Elements<Sheet>()
+                    .FirstOrDefault(s => string.Equals(s.Name?.Value, sheetName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (targetSheet?.Id?.Value == null)
+            {
+                return null;
+            }
+
+            var relationshipId = targetSheet.Id.Value;
+            return workbookPart.GetPartById(relationshipId) as WorksheetPart;
         }
 
         /// <summary>
         /// Parses a worksheet and extracts field definitions
         /// </summary>
-        private async Task<List<FieldDefinition>> ParseWorksheetAsync(ExcelWorksheet worksheet)
+        private List<FieldDefinition> ParseWorksheet(WorksheetPart worksheetPart, WorkbookPart workbookPart)
         {
             var fieldDefinitions = new List<FieldDefinition>();
+            var worksheet = worksheetPart.Worksheet;
+            var sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null)
+            {
+                throw new InvalidOperationException("No sheet data found in worksheet");
+            }
 
             // Find the header row (first non-empty row)
-            int headerRow = FindHeaderRow(worksheet);
+            int headerRow = FindHeaderRow(sheetData);
             if (headerRow == -1)
             {
                 throw new InvalidOperationException("No header row found in worksheet");
             }
 
             // Parse headers
-            var headers = ParseHeaders(worksheet, headerRow);
+            var headers = ParseHeaders(sheetData, headerRow, workbookPart);
             if (headers.Count == 0)
             {
                 throw new InvalidOperationException("No valid headers found in worksheet");
@@ -144,12 +208,18 @@ namespace ControlFileGenerator.WinForms.Services
 
             // Parse data rows
             int dataStartRow = headerRow + 1;
-            for (int row = dataStartRow; row <= worksheet.Dimension.End.Row; row++)
+            var rows = sheetData.Elements<Row>().ToList();
+            for (int i = 0; i < rows.Count; i++)
             {
-                var fieldDef = ParseFieldDefinition(worksheet, row, headers);
-                if (fieldDef != null && !string.IsNullOrWhiteSpace(fieldDef.FieldName))
+                var row = rows[i];
+                if (row.RowIndex?.Value == dataStartRow)
                 {
-                    fieldDefinitions.Add(fieldDef);
+                    var fieldDef = ParseFieldDefinition(row, headers, workbookPart);
+                    if (fieldDef != null && !string.IsNullOrWhiteSpace(fieldDef.FieldName))
+                    {
+                        fieldDefinitions.Add(fieldDef);
+                    }
+                    dataStartRow++;
                 }
             }
 
@@ -159,16 +229,22 @@ namespace ControlFileGenerator.WinForms.Services
         /// <summary>
         /// Finds the header row in the worksheet
         /// </summary>
-        private int FindHeaderRow(ExcelWorksheet worksheet)
+        private int FindHeaderRow(SheetData sheetData)
         {
-            for (int row = 1; row <= Math.Min(10, worksheet.Dimension?.End.Row ?? 10); row++)
+            var rows = sheetData.Elements<Row>().Take(10).ToList();
+            
+            for (int i = 0; i < rows.Count; i++)
             {
-                for (int col = 1; col <= (worksheet.Dimension?.End.Column ?? 1); col++)
+                var row = rows[i];
+                if (row.RowIndex?.Value == null) continue;
+
+                var cells = row.Elements<Cell>().ToList();
+                foreach (var cell in cells)
                 {
-                    var cellValue = worksheet.Cells[row, col].Text?.Trim();
+                    var cellValue = GetCellValue(cell, null);
                     if (!string.IsNullOrEmpty(cellValue) && IsHeaderCell(cellValue))
                     {
-                        return row;
+                        return (int)row.RowIndex.Value;
                     }
                 }
             }
@@ -187,16 +263,28 @@ namespace ControlFileGenerator.WinForms.Services
         /// <summary>
         /// Parses headers from the header row
         /// </summary>
-        private Dictionary<int, string> ParseHeaders(ExcelWorksheet worksheet, int headerRow)
+        private Dictionary<int, string> ParseHeaders(SheetData sheetData, int headerRow, WorkbookPart workbookPart)
         {
             var headers = new Dictionary<int, string>();
+            var targetRow = sheetData.Elements<Row>()
+                .FirstOrDefault(r => r.RowIndex?.Value == headerRow);
 
-            for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+            if (targetRow == null)
             {
-                var headerValue = worksheet.Cells[headerRow, col].Text?.Trim();
-                if (!string.IsNullOrEmpty(headerValue))
+                return headers;
+            }
+
+            var cells = targetRow.Elements<Cell>().ToList();
+            foreach (var cell in cells)
+            {
+                var columnIndex = GetColumnIndex(cell.CellReference?.Value);
+                if (columnIndex.HasValue)
                 {
-                    headers[col] = headerValue;
+                    var headerValue = GetCellValue(cell, workbookPart)?.Trim();
+                    if (!string.IsNullOrEmpty(headerValue))
+                    {
+                        headers[columnIndex.Value] = headerValue;
+                    }
                 }
             }
 
@@ -206,22 +294,83 @@ namespace ControlFileGenerator.WinForms.Services
         /// <summary>
         /// Parses a single field definition from a data row
         /// </summary>
-        private FieldDefinition ParseFieldDefinition(ExcelWorksheet worksheet, int row, Dictionary<int, string> headers)
+        private FieldDefinition ParseFieldDefinition(Row row, Dictionary<int, string> headers, WorkbookPart workbookPart)
         {
             var fieldDef = new FieldDefinition();
+            var cells = row.Elements<Cell>().ToList();
 
-            foreach (var header in headers)
+            foreach (var cell in cells)
             {
-                var cellValue = worksheet.Cells[row, header.Key].Text?.Trim();
+                var columnIndex = GetColumnIndex(cell.CellReference?.Value);
+                if (!columnIndex.HasValue || !headers.ContainsKey(columnIndex.Value))
+                {
+                    continue;
+                }
+
+                var cellValue = GetCellValue(cell, workbookPart)?.Trim();
                 if (string.IsNullOrEmpty(cellValue)) continue;
 
-                var mappedProperty = _columnMappings.GetValueOrDefault(header.Value);
+                var headerValue = headers[columnIndex.Value];
+                var mappedProperty = _columnMappings.GetValueOrDefault(headerValue);
                 if (string.IsNullOrEmpty(mappedProperty)) continue;
 
                 SetPropertyValue(fieldDef, mappedProperty, cellValue);
             }
 
             return fieldDef;
+        }
+
+        /// <summary>
+        /// Gets the column index from a cell reference (e.g., "A1" -> 1, "B1" -> 2)
+        /// </summary>
+        private int? GetColumnIndex(string? cellReference)
+        {
+            if (string.IsNullOrEmpty(cellReference))
+            {
+                return null;
+            }
+
+            var columnName = new string(cellReference.TakeWhile(char.IsLetter).ToArray());
+            if (string.IsNullOrEmpty(columnName))
+            {
+                return null;
+            }
+
+            int index = 0;
+            foreach (char c in columnName)
+            {
+                index = index * 26 + (c - 'A' + 1);
+            }
+            return index;
+        }
+
+        /// <summary>
+        /// Gets the cell value, handling shared strings
+        /// </summary>
+        private string? GetCellValue(Cell cell, WorkbookPart? workbookPart)
+        {
+            if (cell.CellValue == null)
+            {
+                return null;
+            }
+
+            var value = cell.CellValue.Text;
+
+            // Handle shared strings
+            if (cell.DataType?.Value == CellValues.SharedString && workbookPart != null)
+            {
+                var sharedStringTable = workbookPart.SharedStringTablePart?.SharedStringTable;
+                if (sharedStringTable != null && int.TryParse(value, out int index))
+                {
+                    var sharedStringItem = sharedStringTable.Elements<SharedStringItem>().ElementAtOrDefault(index);
+                    if (sharedStringItem != null)
+                    {
+                        value = sharedStringItem.Text?.Text ?? string.Empty;
+                    }
+                }
+            }
+
+            return value;
         }
 
         /// <summary>

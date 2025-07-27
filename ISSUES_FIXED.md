@@ -19,10 +19,10 @@ This document outlines the issues that were discovered during the project review
   - Fixed parameter nullability in `ExcelMetadataParser.cs`
 - **Files:** `Forms/MainForm.cs`, `Services/FieldDefinitionExporter.cs`, `Services/ExcelMetadataParser.cs`
 
-### 3. **EPPlus License Context Warnings**
-- **Issue:** Obsolete EPPlus license context usage
-- **Warning:** `'ExcelPackage.LicenseContext' is obsolete`
-- **Fix:** Updated to use the correct EPPlus 8.x license context approach
+### 3. **EPPlus to Microsoft Open XML SDK Migration**
+- **Issue:** EPPlus library replaced with Microsoft Open XML SDK for compliance
+- **Change:** Migrated from EPPlus to DocumentFormat.OpenXml package
+- **Fix:** Updated ExcelMetadataParser to use Microsoft Open XML SDK
 - **File:** `Services/ExcelMetadataParser.cs`
 
 ## Missing Logic Issues Fixed

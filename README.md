@@ -30,7 +30,7 @@ A comprehensive Windows Forms (.NET 8, C#) desktop application for generating Or
 
 - .NET 8.0 or later
 - Windows 10/11
-- EPPlus library (for Excel file processing)
+- Microsoft Open XML SDK (for Excel file processing)
 
 ## 🛠️ Installation & Setup
 
