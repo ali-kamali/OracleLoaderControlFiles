@@ -1005,57 +1005,121 @@ namespace ControlFileGenerator.WinForms.Forms
         {
             try
             {
+                UpdateStatusMessage("Validating fields with enhanced analysis...");
+                
                 // Use mode-specific validation
                 ApplyModeSpecificValidation();
                 
-                // Also run general validation
-                var validationResult = EdgeCaseHandler.ValidateAllFields(_fieldDefinitions);
+                // Apply edge case handling
+                EdgeCaseHandler.ApplyEdgeCaseHandling(_fieldDefinitions);
                 
-                if (validationResult.IsValid && !validationResult.HasWarnings)
-                {
-                    MessageBox.Show($"All fields are valid for {(_isFixedWidthMode ? "Fixed-Width" : "CSV")} mode!", "Validation", 
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    var message = new StringBuilder();
-                    message.AppendLine($"Validation Results for {(_isFixedWidthMode ? "Fixed-Width" : "CSV")} Mode:");
-                    message.AppendLine();
-                    
-                    if (validationResult.HasErrors)
-                    {
-                        message.AppendLine("Errors:");
-                        foreach (var error in validationResult.Errors)
-                        {
-                            message.AppendLine($"• {error}");
-                        }
-                        message.AppendLine();
-                    }
-                    
-                    if (validationResult.HasWarnings)
-                    {
-                        message.AppendLine("Warnings:");
-                        foreach (var warning in validationResult.Warnings)
-                        {
-                            message.AppendLine($"• {warning}");
-                        }
-                    }
-                    
-                    MessageBox.Show(message.ToString(), "Validation Results", 
-                        MessageBoxButtons.OK, 
-                        validationResult.HasErrors ? MessageBoxIcon.Error : MessageBoxIcon.Warning);
-                }
+                // Use enhanced validation with detailed error messages and suggestions
+                var enhancedValidationResult = EnhancedErrorMessageService.ValidateAllFieldsWithSuggestions(_fieldDefinitions);
                 
-                // Refresh grid to update highlighting
+                // Refresh the grid to show validation results
                 RefreshDataGridView();
-                UpdateStatusMessage($"Validation complete: {validationResult.GetSummary()}");
+                
+                // Show enhanced validation results
+                ShowEnhancedValidationResults(enhancedValidationResult);
+                
+                UpdateStatusMessage(enhancedValidationResult.HasErrors ? "Validation completed with errors" : 
+                                  enhancedValidationResult.HasWarnings ? "Validation completed with warnings" : 
+                                  "Validation completed successfully");
             }
             catch (Exception ex)
             {
-                _loggingService.LogError("Error during validation", ex);
-                MessageBox.Show($"Error during validation: {ex.Message}", "Error", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _loggingService.LogError("Error during enhanced validation", ex);
+                MessageBox.Show($"Error during validation: {ex.Message}", "Validation Error", 
+                              MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UpdateStatusMessage("Validation failed");
             }
+        }
+
+        private void ShowEnhancedValidationResults(EnhancedErrorMessageService.EnhancedValidationResult result)
+        {
+            var messageBuilder = new StringBuilder();
+            
+            if (result.HasErrors)
+            {
+                messageBuilder.AppendLine("❌ ERRORS FOUND:");
+                messageBuilder.AppendLine();
+                
+                foreach (var error in result.Errors.Take(10)) // Limit to first 10 errors
+                {
+                    messageBuilder.AppendLine($"• {error.FieldName}: {error.ErrorMessage}");
+                    if (!string.IsNullOrEmpty(error.Suggestion))
+                    {
+                        messageBuilder.AppendLine($"  💡 Suggestion: {error.Suggestion}");
+                    }
+                    if (!string.IsNullOrEmpty(error.AutoFixAction))
+                    {
+                        messageBuilder.AppendLine($"  🔧 Auto-fix: {error.AutoFixAction}");
+                    }
+                    messageBuilder.AppendLine();
+                }
+                
+                if (result.Errors.Count > 10)
+                {
+                    messageBuilder.AppendLine($"... and {result.Errors.Count - 10} more errors");
+                    messageBuilder.AppendLine();
+                }
+            }
+            
+            if (result.HasWarnings)
+            {
+                messageBuilder.AppendLine("⚠️ WARNINGS:");
+                messageBuilder.AppendLine();
+                
+                foreach (var warning in result.Warnings.Take(5)) // Limit to first 5 warnings
+                {
+                    messageBuilder.AppendLine($"• {warning.FieldName}: {warning.WarningMessage}");
+                    if (!string.IsNullOrEmpty(warning.Suggestion))
+                    {
+                        messageBuilder.AppendLine($"  💡 Suggestion: {warning.Suggestion}");
+                    }
+                    messageBuilder.AppendLine();
+                }
+                
+                if (result.Warnings.Count > 5)
+                {
+                    messageBuilder.AppendLine($"... and {result.Warnings.Count - 5} more warnings");
+                    messageBuilder.AppendLine();
+                }
+            }
+            
+            if (result.HasSuggestions)
+            {
+                messageBuilder.AppendLine("💡 OPTIMIZATION SUGGESTIONS:");
+                messageBuilder.AppendLine();
+                
+                foreach (var suggestion in result.Suggestions.Take(5)) // Limit to first 5 suggestions
+                {
+                    messageBuilder.AppendLine($"• {suggestion.FieldName}: {suggestion.SuggestionMessage}");
+                    if (!string.IsNullOrEmpty(suggestion.Implementation))
+                    {
+                        messageBuilder.AppendLine($"  🔧 Implementation: {suggestion.Implementation}");
+                    }
+                    messageBuilder.AppendLine();
+                }
+                
+                if (result.Suggestions.Count > 5)
+                {
+                    messageBuilder.AppendLine($"... and {result.Suggestions.Count - 5} more suggestions");
+                    messageBuilder.AppendLine();
+                }
+            }
+            
+            if (!result.HasErrors && !result.HasWarnings && !result.HasSuggestions)
+            {
+                messageBuilder.AppendLine("✅ All fields are valid and optimized!");
+            }
+            
+            var message = messageBuilder.ToString();
+            var icon = result.HasErrors ? MessageBoxIcon.Error : 
+                      result.HasWarnings ? MessageBoxIcon.Warning : 
+                      MessageBoxIcon.Information;
+            
+            MessageBox.Show(message, "Enhanced Validation Results", MessageBoxButtons.OK, icon);
         }
 
         private void BtnAutoFix_Click(object sender, EventArgs e)
@@ -1414,40 +1478,223 @@ namespace ControlFileGenerator.WinForms.Forms
             {
                 var field = _fieldDefinitions[e.RowIndex];
                 var column = dgvFields.Columns[e.ColumnIndex];
+                var tooltipText = new StringBuilder();
 
                 // Provide specific tooltips based on column and field state
                 switch (e.ColumnIndex)
                 {
                     case 0: // Field Name
                         if (string.IsNullOrEmpty(field.FieldName))
-                            e.ToolTipText = "Field name is required and must be unique";
-                        else if (_fieldDefinitions.Count(f => f.FieldName.Equals(field.FieldName, StringComparison.OrdinalIgnoreCase)) > 1)
-                            e.ToolTipText = "Duplicate field name detected";
-                        break;
-                    case 1: // Order
-                        if (field.Order.HasValue && field.Order <= 0)
-                            e.ToolTipText = "Order must be a positive number";
-                        break;
-                    case 2: // Start Position
-                    case 3: // End Position
-                        if (field.StartPosition.HasValue && field.EndPosition.HasValue && field.StartPosition >= field.EndPosition)
-                            e.ToolTipText = "Start position must be less than end position";
-                        break;
-                    case 5: // COBOL Type
-                        if (!string.IsNullOrEmpty(field.CobolType) && string.IsNullOrEmpty(field.SqlType))
-                            e.ToolTipText = "SQL type will be auto-inferred from COBOL type";
-                        break;
-                    case 10: // Null If Value
-                        if (!string.IsNullOrEmpty(field.NullIfValue))
                         {
-                            e.ToolTipText = IntelligentNullValueProcessor.GetNullValueDescription(field.NullIfValue);
+                            tooltipText.AppendLine("❌ Field name is required and must be unique");
+                            tooltipText.AppendLine("💡 Must start with letter or underscore");
+                            tooltipText.AppendLine("💡 Max 30 characters, alphanumeric + underscore only");
+                        }
+                        else if (_fieldDefinitions.Count(f => f.FieldName.Equals(field.FieldName, StringComparison.OrdinalIgnoreCase)) > 1)
+                        {
+                            tooltipText.AppendLine("❌ Duplicate field name detected");
+                            tooltipText.AppendLine("💡 Each field name must be unique");
                         }
                         else
                         {
-                            e.ToolTipText = "Specify values to treat as NULL. Use smart patterns like 'EMPTY_OR_WHITESPACE' or specific values like '0', 'NULL', etc.";
+                            tooltipText.AppendLine($"✅ Field name: {field.FieldName}");
+                            tooltipText.AppendLine("💡 Must be unique and follow Oracle naming conventions");
+                        }
+                        break;
+                        
+                    case 1: // Order
+                        if (field.Order.HasValue && field.Order <= 0)
+                        {
+                            tooltipText.AppendLine("❌ Order must be a positive number");
+                            tooltipText.AppendLine("💡 Use 1, 2, 3, etc. for sequential ordering");
+                        }
+                        else
+                        {
+                            tooltipText.AppendLine($"✅ Order: {field.Order}");
+                            tooltipText.AppendLine("💡 Used for auto-calculating positions");
+                        }
+                        break;
+                        
+                    case 2: // Start Position
+                    case 3: // End Position
+                        if (field.StartPosition.HasValue && field.EndPosition.HasValue && field.StartPosition >= field.EndPosition)
+                        {
+                            tooltipText.AppendLine("❌ Start position must be less than end position");
+                            tooltipText.AppendLine("💡 Adjust positions or use auto-calculation");
+                        }
+                        else
+                        {
+                            tooltipText.AppendLine($"✅ Position: {field.StartPosition}-{field.EndPosition}");
+                            if (field.StartPosition.HasValue && field.EndPosition.HasValue)
+                            {
+                                var calculatedLength = field.EndPosition.Value - field.StartPosition.Value + 1;
+                                tooltipText.AppendLine($"💡 Calculated length: {calculatedLength}");
+                            }
+                        }
+                        break;
+                        
+                    case 5: // COBOL Type
+                        if (!string.IsNullOrEmpty(field.CobolType))
+                        {
+                            tooltipText.AppendLine($"✅ COBOL Type: {field.CobolType}");
+                            tooltipText.AppendLine("💡 Used to infer Oracle SQL type and field length");
+                            
+                            try
+                            {
+                                var suggestedSqlType = CobolTypeMapper.MapCobolToOracle(field.CobolType);
+                                tooltipText.AppendLine($"💡 Suggested SQL Type: {suggestedSqlType}");
+                                
+                                var suggestedLength = field.CalculateLengthFromCobolType(field.CobolType);
+                                if (suggestedLength > 0)
+                                {
+                                    tooltipText.AppendLine($"💡 Suggested Length: {suggestedLength}");
+                                }
+                            }
+                            catch
+                            {
+                                tooltipText.AppendLine("❌ Invalid COBOL type format");
+                                tooltipText.AppendLine("💡 Use format: PIC X(n), PIC 9(n), PIC S9(n)V99");
+                            }
+                        }
+                        else
+                        {
+                            tooltipText.AppendLine("💡 Enter COBOL type to auto-infer SQL type and length");
+                        }
+                        break;
+                        
+                    case 6: // SQL Type
+                        if (!string.IsNullOrEmpty(field.SqlType))
+                        {
+                            tooltipText.AppendLine($"✅ SQL Type: {field.SqlType}");
+                            
+                            // Add smart suggestions
+                            var transformSuggestions = SmartAutoCompletionService.GetTransformSuggestions(field.SqlType, field.FieldName);
+                            if (transformSuggestions.Any())
+                            {
+                                tooltipText.AppendLine();
+                                tooltipText.AppendLine("💡 Suggested Transforms:");
+                                foreach (var suggestion in transformSuggestions.Take(3))
+                                {
+                                    tooltipText.AppendLine($"  • {suggestion}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            tooltipText.AppendLine("💡 Enter Oracle SQL type or let COBOL type auto-infer");
+                        }
+                        break;
+                        
+                    case 10: // Null If Value
+                        if (!string.IsNullOrEmpty(field.NullIfValue))
+                        {
+                            tooltipText.AppendLine($"✅ Null If Value: {field.NullIfValue}");
+                            tooltipText.AppendLine(IntelligentNullValueProcessor.GetNullValueDescription(field.NullIfValue));
+                        }
+                        else
+                        {
+                            tooltipText.AppendLine("💡 Enter value to treat as NULL during load");
+                            
+                            // Add smart suggestions
+                            if (!string.IsNullOrEmpty(field.SqlType))
+                            {
+                                var nullValueSuggestions = SmartAutoCompletionService.GetNullValueSuggestions(field.SqlType, field.FieldName);
+                                if (nullValueSuggestions.Any())
+                                {
+                                    tooltipText.AppendLine();
+                                    tooltipText.AppendLine("💡 Smart Suggestions:");
+                                    foreach (var suggestion in nullValueSuggestions.Take(3))
+                                    {
+                                        tooltipText.AppendLine($"  • {suggestion}");
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 8: // Transform
+                        if (!string.IsNullOrEmpty(field.Transform))
+                        {
+                            tooltipText.AppendLine($"✅ Transform: {field.Transform}");
+                            tooltipText.AppendLine("💡 Oracle SQL expression to transform data during load");
+                        }
+                        else
+                        {
+                            tooltipText.AppendLine("💡 Enter Oracle SQL expression to transform data");
+                            
+                            // Add smart suggestions
+                            if (!string.IsNullOrEmpty(field.SqlType))
+                            {
+                                var transformSuggestions = SmartAutoCompletionService.GetTransformSuggestions(field.SqlType, field.FieldName);
+                                if (transformSuggestions.Any())
+                                {
+                                    tooltipText.AppendLine();
+                                    tooltipText.AppendLine("💡 Smart Suggestions:");
+                                    foreach (var suggestion in transformSuggestions.Take(3))
+                                    {
+                                        tooltipText.AppendLine($"  • {suggestion}");
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 9: // Default Value
+                        if (!string.IsNullOrEmpty(field.DefaultValue))
+                        {
+                            tooltipText.AppendLine($"✅ Default Value: {field.DefaultValue}");
+                            tooltipText.AppendLine("💡 Value to use when field is NULL or empty");
+                        }
+                        else
+                        {
+                            tooltipText.AppendLine("💡 Enter default value for NULL/empty fields");
+                            
+                            // Add smart suggestions
+                            if (!string.IsNullOrEmpty(field.SqlType))
+                            {
+                                var defaultValueSuggestions = SmartAutoCompletionService.GetDefaultValueSuggestions(field.SqlType, field.FieldName);
+                                if (defaultValueSuggestions.Any())
+                                {
+                                    tooltipText.AppendLine();
+                                    tooltipText.AppendLine("💡 Smart Suggestions:");
+                                    foreach (var suggestion in defaultValueSuggestions.Take(3))
+                                    {
+                                        tooltipText.AppendLine($"  • {suggestion}");
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 12: // Data Format
+                        if (!string.IsNullOrEmpty(field.DataFormat))
+                        {
+                            tooltipText.AppendLine($"✅ Data Format: {field.DataFormat}");
+                            tooltipText.AppendLine("💡 Format specification for dates, numbers, etc.");
+                        }
+                        else
+                        {
+                            tooltipText.AppendLine("💡 Enter format specification (e.g., 'YYYY-MM-DD')");
+                            
+                            // Add smart suggestions
+                            if (!string.IsNullOrEmpty(field.SqlType))
+                            {
+                                var formatSuggestions = SmartAutoCompletionService.GetDataFormatSuggestions(field.SqlType, field.FieldName);
+                                if (formatSuggestions.Any())
+                                {
+                                    tooltipText.AppendLine();
+                                    tooltipText.AppendLine("💡 Smart Suggestions:");
+                                    foreach (var suggestion in formatSuggestions.Take(3))
+                                    {
+                                        tooltipText.AppendLine($"  • {suggestion}");
+                                    }
+                                }
+                            }
                         }
                         break;
                 }
+
+                e.ToolTipText = tooltipText.ToString();
             }
             catch (Exception ex)
             {
@@ -1570,6 +1817,23 @@ namespace ControlFileGenerator.WinForms.Forms
                 "PIC S9(6) COMP", "PIC S9(8) COMP", "PIC S9(10) COMP"
             });
             textBox.AutoCompleteCustomSource = suggestions;
+            
+            // Add real-time SQL type suggestion
+            textBox.TextChanged += (sender, e) =>
+            {
+                if (!string.IsNullOrWhiteSpace(textBox.Text))
+                {
+                    try
+                    {
+                        var suggestedSqlType = CobolTypeMapper.MapCobolToOracle(textBox.Text);
+                        ShowToolTip(textBox, $"Suggested SQL Type: {suggestedSqlType}", 3000);
+                    }
+                    catch
+                    {
+                        // Ignore mapping errors for incomplete input
+                    }
+                }
+            };
         }
 
         private void SetupTransformAutoComplete(TextBox textBox)
@@ -1591,6 +1855,22 @@ namespace ControlFileGenerator.WinForms.Forms
                 "INSTR(:FIELD, ',')", "REGEXP_REPLACE(:FIELD, '[^0-9]', '')"
             });
             textBox.AutoCompleteCustomSource = suggestions;
+            
+            // Add smart transform suggestions based on current field
+            textBox.GotFocus += (sender, e) =>
+            {
+                var currentRow = dgvFields.CurrentRow;
+                if (currentRow?.DataBoundItem is FieldDefinition field)
+                {
+                    var transformSuggestions = SmartAutoCompletionService.GetTransformSuggestions(field.SqlType, field.FieldName);
+                    if (transformSuggestions.Any())
+                    {
+                        var smartSuggestions = new AutoCompleteStringCollection();
+                        smartSuggestions.AddRange(transformSuggestions.Take(10).ToArray());
+                        textBox.AutoCompleteCustomSource = smartSuggestions;
+                    }
+                }
+            };
         }
 
         private void SetupDefaultValueAutoComplete(TextBox textBox)
@@ -1662,6 +1942,12 @@ namespace ControlFileGenerator.WinForms.Forms
                 "Status Code", "Created Date", "Modified Date", "Created By", "Modified By"
             });
             textBox.AutoCompleteCustomSource = suggestions;
+        }
+
+        private void ShowToolTip(Control control, string message, int duration = 3000)
+        {
+            var toolTip = new ToolTip();
+            toolTip.Show(message, control, 0, -25, duration);
         }
 
         private void DgvFields_DataError(object sender, DataGridViewDataErrorEventArgs e)
