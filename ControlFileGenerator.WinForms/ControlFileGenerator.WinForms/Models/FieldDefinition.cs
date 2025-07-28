@@ -53,6 +53,82 @@ namespace ControlFileGenerator.WinForms.Models
         [DisplayName("Description")]
         public string Description { get; set; } = string.Empty;
 
+        // Advanced Field Specifications - NEW PROPERTIES
+        [DisplayName("Field Terminator")]
+        public string FieldTerminator { get; set; } = string.Empty;
+
+        [DisplayName("Terminator Type")]
+        public string TerminatorType { get; set; } = "CHARACTER"; // CHARACTER, WHITESPACE, EOF
+
+        [DisplayName("Field Enclosed By")]
+        public string FieldEnclosedBy { get; set; } = string.Empty;
+
+        [DisplayName("Field Optionally Enclosed")]
+        public bool FieldOptionallyEnclosed { get; set; } = false;
+
+        [DisplayName("Data Type Modifier")]
+        public string DataTypeModifier { get; set; } = string.Empty; // EXTERNAL, INTERNAL, etc.
+
+        [DisplayName("Precision")]
+        public int? Precision { get; set; }
+
+        [DisplayName("Scale")]
+        public int? Scale { get; set; }
+
+        [DisplayName("LOB Size")]
+        public int? LobSize { get; set; }
+
+        [DisplayName("Binary Format")]
+        public string BinaryFormat { get; set; } = string.Empty;
+
+        [DisplayName("Null Condition")]
+        public string NullCondition { get; set; } = string.Empty;
+
+        [DisplayName("Default Condition")]
+        public string DefaultCondition { get; set; } = string.Empty;
+
+        [DisplayName("Null Operator")]
+        public string NullOperator { get; set; } = "AND"; // AND, OR
+
+        [DisplayName("Transform Type")]
+        public string TransformType { get; set; } = string.Empty; // CASE, DECODE, FUNCTION
+
+        [DisplayName("Transform Parameters")]
+        public string TransformParameters { get; set; } = string.Empty;
+
+        [DisplayName("Relative Position")]
+        public bool RelativePosition { get; set; } = false;
+
+        [DisplayName("Alternative Positions")]
+        public string AlternativePositions { get; set; } = string.Empty;
+
+        [DisplayName("Field Character Set")]
+        public string FieldCharacterSet { get; set; } = string.Empty;
+
+        [DisplayName("Validation Rule")]
+        public string ValidationRule { get; set; } = string.Empty;
+
+        [DisplayName("Validation Expression")]
+        public string ValidationExpression { get; set; } = string.Empty;
+
+        [DisplayName("Date Format")]
+        public string DateFormat { get; set; } = string.Empty;
+
+        [DisplayName("Time Zone Format")]
+        public string TimeZoneFormat { get; set; } = string.Empty;
+
+        [DisplayName("Numeric Format")]
+        public string NumericFormat { get; set; } = string.Empty;
+
+        [DisplayName("Position Type")]
+        public string PositionType { get; set; } = "ABSOLUTE"; // ABSOLUTE, RELATIVE, OVERLAPPING
+
+        [DisplayName("Field Constraints")]
+        public string FieldConstraints { get; set; } = string.Empty;
+
+        [DisplayName("Conditional Transform")]
+        public string ConditionalTransform { get; set; } = string.Empty;
+
         /// <summary>
         /// Calculates the position string for SQL*Loader control file
         /// </summary>
@@ -256,20 +332,50 @@ namespace ControlFileGenerator.WinForms.Models
         /// </summary>
         public string GetOracleDataType()
         {
+            var baseType = string.Empty;
+            
             // Use explicit SQL type if provided
             if (!string.IsNullOrEmpty(SqlType))
             {
-                return SqlType.ToUpper();
+                baseType = SqlType.ToUpper();
             }
-
             // Infer from COBOL type using the centralized mapper
-            if (!string.IsNullOrEmpty(CobolType))
+            else if (!string.IsNullOrEmpty(CobolType))
             {
-                return CobolTypeMapper.MapCobolToOracle(CobolType);
+                baseType = CobolTypeMapper.MapCobolToOracle(CobolType);
+            }
+            else
+            {
+                // Default to CHAR if no type information
+                baseType = "CHAR";
             }
 
-            // Default to CHAR if no type information
-            return "CHAR";
+            // Add precision and scale for NUMBER types
+            if (baseType.StartsWith("NUMBER") && (Precision.HasValue || Scale.HasValue))
+            {
+                if (Precision.HasValue && Scale.HasValue)
+                {
+                    baseType = $"NUMBER({Precision.Value},{Scale.Value})";
+                }
+                else if (Precision.HasValue)
+                {
+                    baseType = $"NUMBER({Precision.Value})";
+                }
+            }
+
+            // Add LOB size for LOB types
+            if ((baseType == "CLOB" || baseType == "BLOB") && LobSize.HasValue)
+            {
+                baseType = $"{baseType}({LobSize.Value})";
+            }
+
+            // Add length for CHAR/VARCHAR2 if specified
+            if ((baseType == "CHAR" || baseType == "VARCHAR2") && Length.HasValue)
+            {
+                baseType = $"{baseType}({Length.Value})";
+            }
+
+            return baseType;
         }
 
         /// <summary>
@@ -277,6 +383,13 @@ namespace ControlFileGenerator.WinForms.Models
         /// </summary>
         public string GetFormatString()
         {
+            // Use explicit date format if specified
+            if (!string.IsNullOrEmpty(DateFormat))
+            {
+                return $"\"{DateFormat}\"";
+            }
+
+            // Use explicit data format if specified
             if (!string.IsNullOrEmpty(DataFormat))
             {
                 return $"\"{DataFormat}\"";
@@ -290,6 +403,237 @@ namespace ControlFileGenerator.WinForms.Models
                 "TIMESTAMP" => "\"YYYY-MM-DD HH24:MI:SS\"",
                 _ => string.Empty
             };
+        }
+
+        /// <summary>
+        /// Gets the field terminator specification
+        /// </summary>
+        public string GetFieldTerminatorString()
+        {
+            if (string.IsNullOrEmpty(FieldTerminator))
+                return string.Empty;
+
+            return TerminatorType.ToUpper() switch
+            {
+                "WHITESPACE" => "TERMINATED BY WHITESPACE",
+                "EOF" => "TERMINATED BY EOF",
+                "CHARACTER" => $"TERMINATED BY '{FieldTerminator}'",
+                _ => $"TERMINATED BY '{FieldTerminator}'"
+            };
+        }
+
+        /// <summary>
+        /// Gets the field enclosure specification
+        /// </summary>
+        public string GetFieldEnclosureString()
+        {
+            if (string.IsNullOrEmpty(FieldEnclosedBy))
+                return string.Empty;
+
+            var enclosureType = FieldOptionallyEnclosed ? "OPTIONALLY ENCLOSED BY" : "ENCLOSED BY";
+            return $"{enclosureType} '{FieldEnclosedBy}'";
+        }
+
+        /// <summary>
+        /// Gets the data type modifier
+        /// </summary>
+        public string GetDataTypeModifierString()
+        {
+            if (string.IsNullOrEmpty(DataTypeModifier))
+                return string.Empty;
+
+            return DataTypeModifier.ToUpper();
+        }
+
+        /// <summary>
+        /// Gets the field character set specification
+        /// </summary>
+        public string GetFieldCharacterSetString()
+        {
+            if (string.IsNullOrEmpty(FieldCharacterSet))
+                return string.Empty;
+
+            return $"CHARACTERSET {FieldCharacterSet}";
+        }
+
+        /// <summary>
+        /// Gets the advanced NULL condition clause
+        /// </summary>
+        public string GetAdvancedNullIfClause()
+        {
+            var conditions = new List<string>();
+
+            // Add basic NULLIF if specified
+            if (!string.IsNullOrEmpty(NullIfValue))
+            {
+                conditions.Add(IntelligentNullValueProcessor.ProcessNullValuePattern(NullIfValue, FieldName));
+            }
+
+            // Add advanced NULL condition if specified
+            if (!string.IsNullOrEmpty(NullCondition))
+            {
+                conditions.Add($"NULLIF {NullCondition}");
+            }
+
+            return string.Join($" {NullOperator} ", conditions);
+        }
+
+        /// <summary>
+        /// Gets the advanced default condition clause
+        /// </summary>
+        public string GetAdvancedDefaultValueExpression()
+        {
+            var conditions = new List<string>();
+
+            // Add basic DEFAULTIF if specified
+            if (!string.IsNullOrEmpty(DefaultValue))
+            {
+                conditions.Add($"DEFAULTIF {FieldName}=BLANKS \"{DefaultValue}\"");
+            }
+
+            // Add advanced default condition if specified
+            if (!string.IsNullOrEmpty(DefaultCondition))
+            {
+                conditions.Add($"DEFAULTIF {DefaultCondition}");
+            }
+
+            return string.Join(" ", conditions);
+        }
+
+        /// <summary>
+        /// Gets the advanced transform expression
+        /// </summary>
+        public string GetAdvancedTransformExpression()
+        {
+            // Use conditional transform if specified
+            if (!string.IsNullOrEmpty(ConditionalTransform))
+            {
+                return $"\"{ConditionalTransform}\"";
+            }
+
+            // Use transform type and parameters if specified
+            if (!string.IsNullOrEmpty(TransformType))
+            {
+                return TransformType.ToUpper() switch
+                {
+                    "CASE" => $"\"{GenerateCaseTransform()}\"",
+                    "DECODE" => $"\"{GenerateDecodeTransform()}\"",
+                    "FUNCTION" => $"\"{TransformParameters}\"",
+                    _ => !string.IsNullOrEmpty(Transform) ? $"\"{Transform}\"" : string.Empty
+                };
+            }
+
+            // Fall back to basic transform
+            if (!string.IsNullOrEmpty(Transform))
+            {
+                return $"\"{Transform}\"";
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Generates a CASE transform expression
+        /// </summary>
+        private string GenerateCaseTransform()
+        {
+            if (string.IsNullOrEmpty(TransformParameters))
+                return Transform;
+
+            // Parse transform parameters for CASE statement
+            // Expected format: "WHEN value1 THEN result1,WHEN value2 THEN result2,ELSE default"
+            var parts = TransformParameters.Split(',');
+            var caseStatement = "CASE ";
+
+            foreach (var part in parts)
+            {
+                if (part.StartsWith("WHEN "))
+                {
+                    caseStatement += part + " ";
+                }
+                else if (part.StartsWith("THEN "))
+                {
+                    caseStatement += part + " ";
+                }
+                else if (part.StartsWith("ELSE "))
+                {
+                    caseStatement += part;
+                }
+            }
+
+            caseStatement += " END";
+            return caseStatement;
+        }
+
+        /// <summary>
+        /// Generates a DECODE transform expression
+        /// </summary>
+        private string GenerateDecodeTransform()
+        {
+            if (string.IsNullOrEmpty(TransformParameters))
+                return Transform;
+
+            // Parse transform parameters for DECODE statement
+            // Expected format: "value1,result1,value2,result2,default"
+            var parts = TransformParameters.Split(',');
+            var decodeStatement = $"DECODE(:{FieldName}";
+
+            for (int i = 0; i < parts.Length; i += 2)
+            {
+                if (i + 1 < parts.Length)
+                {
+                    decodeStatement += $", '{parts[i]}', '{parts[i + 1]}'";
+                }
+                else
+                {
+                    // Last part is the default value
+                    decodeStatement += $", '{parts[i]}'";
+                }
+            }
+
+            decodeStatement += ")";
+            return decodeStatement;
+        }
+
+        /// <summary>
+        /// Gets the field validation rule
+        /// </summary>
+        public string GetFieldValidationRule()
+        {
+            if (!string.IsNullOrEmpty(ValidationRule))
+            {
+                return $"CHECK ({ValidationRule})";
+            }
+
+            if (!string.IsNullOrEmpty(ValidationExpression))
+            {
+                return $"\"{ValidationExpression}\"";
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Gets the advanced position string
+        /// </summary>
+        public string GetAdvancedPositionString()
+        {
+            // Handle relative positioning
+            if (RelativePosition)
+            {
+                return "POSITION(*+1)";
+            }
+
+            // Handle alternative positions
+            if (!string.IsNullOrEmpty(AlternativePositions))
+            {
+                var positions = AlternativePositions.Split(',');
+                var positionStrings = positions.Select(p => $"POSITION({p.Trim()})");
+                return string.Join(" ", positionStrings);
+            }
+
+            // Fall back to standard position
+            return GetPositionString();
         }
 
         /// <summary>
@@ -503,7 +847,33 @@ namespace ControlFileGenerator.WinForms.Models
                 EnclosedBy = this.EnclosedBy,
                 Delimiter = this.Delimiter,
                 DataFormat = this.DataFormat,
-                Description = this.Description
+                Description = this.Description,
+                // Advanced Field Specifications
+                FieldTerminator = this.FieldTerminator,
+                TerminatorType = this.TerminatorType,
+                FieldEnclosedBy = this.FieldEnclosedBy,
+                FieldOptionallyEnclosed = this.FieldOptionallyEnclosed,
+                DataTypeModifier = this.DataTypeModifier,
+                Precision = this.Precision,
+                Scale = this.Scale,
+                LobSize = this.LobSize,
+                BinaryFormat = this.BinaryFormat,
+                NullCondition = this.NullCondition,
+                DefaultCondition = this.DefaultCondition,
+                NullOperator = this.NullOperator,
+                TransformType = this.TransformType,
+                TransformParameters = this.TransformParameters,
+                RelativePosition = this.RelativePosition,
+                AlternativePositions = this.AlternativePositions,
+                FieldCharacterSet = this.FieldCharacterSet,
+                ValidationRule = this.ValidationRule,
+                ValidationExpression = this.ValidationExpression,
+                DateFormat = this.DateFormat,
+                TimeZoneFormat = this.TimeZoneFormat,
+                NumericFormat = this.NumericFormat,
+                PositionType = this.PositionType,
+                FieldConstraints = this.FieldConstraints,
+                ConditionalTransform = this.ConditionalTransform
             };
         }
 

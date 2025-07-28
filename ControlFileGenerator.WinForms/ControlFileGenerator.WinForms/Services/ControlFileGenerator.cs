@@ -143,7 +143,7 @@ namespace ControlFileGenerator.WinForms.Services
         }
 
         /// <summary>
-        /// Generates a single field line for the control file
+        /// Generates a single field line for the control file with advanced specifications
         /// </summary>
         private string GenerateFieldLine(FieldDefinition field, bool isFixedWidth)
         {
@@ -166,7 +166,7 @@ namespace ControlFileGenerator.WinForms.Services
             // Handle FILLER fields with position and length
             if (field.FieldName.ToUpper().StartsWith("FILLER") && isFixedWidth)
             {
-                var position = field.GetPositionString();
+                var position = field.GetAdvancedPositionString();
                 if (!string.IsNullOrEmpty(position))
                 {
                     parts.Add(position);
@@ -175,24 +175,54 @@ namespace ControlFileGenerator.WinForms.Services
                 return string.Join(" ", parts);
             }
 
-            // Position specification for fixed-width
+            // Advanced position specification
             if (isFixedWidth)
             {
-                var position = field.GetPositionString();
+                var position = field.GetAdvancedPositionString();
                 if (!string.IsNullOrEmpty(position))
                 {
                     parts.Add(position);
                 }
             }
 
-            // Data type
+            // Data type with advanced specifications
             var dataType = field.GetOracleDataType();
             parts.Add(dataType);
 
-            // External modifier for numeric types
-            if (IsNumericType(dataType))
+            // Data type modifier (EXTERNAL, INTERNAL, etc.)
+            var dataTypeModifier = field.GetDataTypeModifierString();
+            if (!string.IsNullOrEmpty(dataTypeModifier))
+            {
+                parts.Add(dataTypeModifier);
+            }
+            // Fall back to EXTERNAL for numeric types if no modifier specified
+            else if (IsNumericType(dataType))
             {
                 parts.Add("EXTERNAL");
+            }
+
+            // Field-level terminator (for delimited files)
+            if (!isFixedWidth)
+            {
+                var fieldTerminator = field.GetFieldTerminatorString();
+                if (!string.IsNullOrEmpty(fieldTerminator))
+                {
+                    parts.Add(fieldTerminator);
+                }
+            }
+
+            // Field-level enclosure
+            var fieldEnclosure = field.GetFieldEnclosureString();
+            if (!string.IsNullOrEmpty(fieldEnclosure))
+            {
+                parts.Add(fieldEnclosure);
+            }
+
+            // Field character set
+            var fieldCharacterSet = field.GetFieldCharacterSetString();
+            if (!string.IsNullOrEmpty(fieldCharacterSet))
+            {
+                parts.Add(fieldCharacterSet);
             }
 
             // Format specification
@@ -202,25 +232,32 @@ namespace ControlFileGenerator.WinForms.Services
                 parts.Add(format);
             }
 
-            // NULLIF clause
-            var nullIf = field.GetNullIfClause();
+            // Advanced NULLIF clause
+            var nullIf = field.GetAdvancedNullIfClause();
             if (!string.IsNullOrEmpty(nullIf))
             {
                 parts.Add(nullIf);
             }
 
-            // Transform expression
-            var transform = field.GetTransformExpression();
+            // Advanced transform expression
+            var transform = field.GetAdvancedTransformExpression();
             if (!string.IsNullOrEmpty(transform))
             {
                 parts.Add(transform);
             }
 
-            // Default value expression
-            var defaultValue = field.GetDefaultValueExpression();
+            // Advanced default value expression
+            var defaultValue = field.GetAdvancedDefaultValueExpression();
             if (!string.IsNullOrEmpty(defaultValue))
             {
                 parts.Add(defaultValue);
+            }
+
+            // Field validation rule
+            var validationRule = field.GetFieldValidationRule();
+            if (!string.IsNullOrEmpty(validationRule))
+            {
+                parts.Add(validationRule);
             }
 
             return string.Join(" ", parts);
