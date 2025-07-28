@@ -511,16 +511,12 @@ namespace ControlFileGenerator.WinForms.Models
                 return $"\"{ConditionalTransform}\"";
             }
 
-            // Use transform type and parameters if specified
+            // Use the AdvancedTransformationService for complex transformations
             if (!string.IsNullOrEmpty(TransformType))
             {
-                return TransformType.ToUpper() switch
-                {
-                    "CASE" => $"\"{GenerateCaseTransform()}\"",
-                    "DECODE" => $"\"{GenerateDecodeTransform()}\"",
-                    "FUNCTION" => $"\"{TransformParameters}\"",
-                    _ => !string.IsNullOrEmpty(Transform) ? $"\"{Transform}\"" : string.Empty
-                };
+                var transformationService = new AdvancedTransformationService();
+                var transformation = transformationService.GenerateAdvancedTransformation(this);
+                return $"\"{transformation}\"";
             }
 
             // Fall back to basic transform
@@ -532,68 +528,7 @@ namespace ControlFileGenerator.WinForms.Models
             return string.Empty;
         }
 
-        /// <summary>
-        /// Generates a CASE transform expression
-        /// </summary>
-        private string GenerateCaseTransform()
-        {
-            if (string.IsNullOrEmpty(TransformParameters))
-                return Transform;
 
-            // Parse transform parameters for CASE statement
-            // Expected format: "WHEN value1 THEN result1,WHEN value2 THEN result2,ELSE default"
-            var parts = TransformParameters.Split(',');
-            var caseStatement = "CASE ";
-
-            foreach (var part in parts)
-            {
-                if (part.StartsWith("WHEN "))
-                {
-                    caseStatement += part + " ";
-                }
-                else if (part.StartsWith("THEN "))
-                {
-                    caseStatement += part + " ";
-                }
-                else if (part.StartsWith("ELSE "))
-                {
-                    caseStatement += part;
-                }
-            }
-
-            caseStatement += " END";
-            return caseStatement;
-        }
-
-        /// <summary>
-        /// Generates a DECODE transform expression
-        /// </summary>
-        private string GenerateDecodeTransform()
-        {
-            if (string.IsNullOrEmpty(TransformParameters))
-                return Transform;
-
-            // Parse transform parameters for DECODE statement
-            // Expected format: "value1,result1,value2,result2,default"
-            var parts = TransformParameters.Split(',');
-            var decodeStatement = $"DECODE(:{FieldName}";
-
-            for (int i = 0; i < parts.Length; i += 2)
-            {
-                if (i + 1 < parts.Length)
-                {
-                    decodeStatement += $", '{parts[i]}', '{parts[i + 1]}'";
-                }
-                else
-                {
-                    // Last part is the default value
-                    decodeStatement += $", '{parts[i]}'";
-                }
-            }
-
-            decodeStatement += ")";
-            return decodeStatement;
-        }
 
         /// <summary>
         /// Gets the field validation rule

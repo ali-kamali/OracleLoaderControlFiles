@@ -11,7 +11,8 @@ A comprehensive Windows Forms (.NET 8, C#) desktop application for generating Or
 - **Fixed-Width and CSV Modes**: Support for both fixed-width and delimited file formats
 - **Live Preview**: Real-time preview of generated control files
 - **Validation and Auto-Fix**: Comprehensive validation with automatic error correction
-- **Advanced Field Specifications**: Support for complex field-level terminators, enclosures, transformations, and validation
+- **Advanced Field Specifications**: Support for field-level terminators, enclosures, character sets, and complex NULL handling
+- **Advanced Transformations**: Complex SQL transformations including string manipulation, date functions, mathematical operations, conditional logic, and type conversions
 
 ### Edge Case Handling
 - **Missing SQL Types**: Automatically infer from COBOL types or default to CHAR
@@ -251,6 +252,7 @@ dotnet publish -c Release
 - **[Usage Guide](USAGE_GUIDE.md)**: Detailed step-by-step instructions
 - **[COBOL to Oracle Mapping Guide](COBOL_TO_ORACLE_MAPPING_GUIDE.md)**: Complete type mapping reference
 - **[Advanced Field Specifications Guide](ADVANCED_FIELD_SPECIFICATIONS_GUIDE.md)**: Advanced field specifications and transformations
+- **[Advanced Transformations Guide](ADVANCED_TRANSFORMATIONS_GUIDE.md)**: Complex SQL transformations and functions
 - **[Virtual Fields Guide](ControlFileGenerator.WinForms/ControlFileGenerator.WinForms/VIRTUAL_FIELDS_GUIDE.md)**: Virtual field implementation guide
 - **[Oracle Loader Reference](oracle_loader_reference.md)**: SQL*Loader syntax reference
 - **[Oracle Data Types Reference](oracle_data_types_reference.md)**: Oracle data type documentation
