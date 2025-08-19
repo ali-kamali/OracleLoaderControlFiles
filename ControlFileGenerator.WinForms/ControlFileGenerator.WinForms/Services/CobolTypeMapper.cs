@@ -334,7 +334,7 @@ namespace ControlFileGenerator.WinForms.Services
                 return true;
             }
 
-            // PIC 9(n)V(m) pattern - decimal fields
+            // PIC 9(n)V(m) pattern - decimal fields (fraction without parentheses, e.g. V99)
             var decimalMatch = System.Text.RegularExpressions.Regex.Match(cobolType, @"PIC\s+9\((\d+)\)V(\d+)");
             if (decimalMatch.Success && 
                 int.TryParse(decimalMatch.Groups[1].Value, out var totalDigits) &&
@@ -344,13 +344,33 @@ namespace ControlFileGenerator.WinForms.Services
                 return true;
             }
 
-            // PIC S9(n)V(m) pattern - signed decimal fields
+            // PIC 9(n)V9(m) pattern - decimal fields (fraction with parentheses, e.g. V9(2))
+            var decimalMatchParen = System.Text.RegularExpressions.Regex.Match(cobolType, @"PIC\s+9\((\d+)\)\s*V\s*9\((\d+)\)");
+            if (decimalMatchParen.Success &&
+                int.TryParse(decimalMatchParen.Groups[1].Value, out var wholeDigitsParen) &&
+                int.TryParse(decimalMatchParen.Groups[2].Value, out var fracDigitsParen))
+            {
+                oracleType = $"NUMBER({wholeDigitsParen + fracDigitsParen},{fracDigitsParen})";
+                return true;
+            }
+
+            // PIC S9(n)V(m) pattern - signed decimal fields (fraction without parentheses)
             var sDecimalMatch = System.Text.RegularExpressions.Regex.Match(cobolType, @"PIC\s+S9\((\d+)\)V(\d+)");
             if (sDecimalMatch.Success && 
                 int.TryParse(sDecimalMatch.Groups[1].Value, out var sTotalDigits) &&
                 int.TryParse(sDecimalMatch.Groups[2].Value, out var sDecimalDigits))
             {
                 oracleType = $"NUMBER({sTotalDigits},{sDecimalDigits})";
+                return true;
+            }
+
+            // PIC S9(n)V9(m) pattern - signed decimal fields (fraction with parentheses)
+            var sDecimalMatchParen = System.Text.RegularExpressions.Regex.Match(cobolType, @"PIC\s+S9\((\d+)\)\s*V\s*9\((\d+)\)");
+            if (sDecimalMatchParen.Success &&
+                int.TryParse(sDecimalMatchParen.Groups[1].Value, out var sWholeDigitsParen) &&
+                int.TryParse(sDecimalMatchParen.Groups[2].Value, out var sFracDigitsParen))
+            {
+                oracleType = $"NUMBER({sWholeDigitsParen + sFracDigitsParen},{sFracDigitsParen})";
                 return true;
             }
 

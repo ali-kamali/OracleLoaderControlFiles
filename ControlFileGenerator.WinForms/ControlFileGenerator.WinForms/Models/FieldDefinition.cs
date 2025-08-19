@@ -256,75 +256,215 @@ namespace ControlFileGenerator.WinForms.Models
                 return 0;
 
             var normalizedType = cobolType.Trim().ToUpper();
-            
-            // Handle PIC X(n) - Character fields
-            var xMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+X\((\d+)\)");
-            if (xMatch.Success && int.TryParse(xMatch.Groups[1].Value, out int xLength))
+
+            // OCCURS multiplier
+            int occurs = 1;
+            var occursMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"OCCURS\s+(\d+)");
+            if (occursMatch.Success && int.TryParse(occursMatch.Groups[1].Value, out var occursCount))
             {
-                return xLength;
+                occurs = Math.Max(1, occursCount);
             }
 
-            // Handle PIC X - Single character
-            if (normalizedType == "PIC X")
+            // Computational flags
+            bool isComp1 = normalizedType.Contains("COMP-1");
+            bool isComp2 = normalizedType.Contains("COMP-2");
+            bool isComp3 = normalizedType.Contains("COMP-3");
+            bool isComp5 = normalizedType.Contains("COMP-5");
+            bool isComp4 = normalizedType.Contains("COMP-4");
+            bool isPlainComp = (normalizedType.Contains("COMP") || isComp4) && !isComp1 && !isComp2 && !isComp3 && !isComp5;
+
+            // SIGN IS LEADING/TRAILING SEPARATE handling for display numerics
+            bool hasSeparateSignClause = normalizedType.Contains("SIGN") && normalizedType.Contains("SEPARATE");
+            bool isSignedPicture = System.Text.RegularExpressions.Regex.IsMatch(normalizedType, @"PIC\s+S\s*9");
+            int ApplySignSeparate(int baseLength)
             {
-                return 1;
+                if (isComp1 || isComp2 || isComp3 || isPlainComp || isComp5)
+                    return baseLength; // computational types embed sign
+                if (hasSeparateSignClause && isSignedPicture)
+                    return baseLength + 1;
+                return baseLength;
             }
 
-            // Handle PIC 9(n) - Numeric fields
-            var nineMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+9\((\d+)\)");
-            if (nineMatch.Success && int.TryParse(nineMatch.Groups[1].Value, out int nineLength))
+            // Helper: total numeric digits in picture (excludes editing symbols, excludes P)
+            int GetTotalNumericDigits()
             {
-                return nineLength;
+                // Repeated digits without parentheses: PIC S?999 [V 99]
+                var rep = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?(9+)\s*(?:V\s*(9+))?\b");
+                if (rep.Success)
+                {
+                    int wholeRep = rep.Groups[1].Value.Length;
+                    int fracRep = rep.Groups[2].Success ? rep.Groups[2].Value.Length : 0;
+                    return wholeRep + fracRep;
+                }
+
+                // PIC S?9(n)V9(m)
+                var m1 = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?\s*9\s*\((\d+)\)\s*V\s*9\s*\((\d+)\)");
+                if (m1.Success && int.TryParse(m1.Groups[1].Value, out var whole) && int.TryParse(m1.Groups[2].Value, out var frac))
+                    return whole + frac;
+
+                // PIC S?9(n) [with optional V9(k) or V999...]
+                var m2 = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?\s*9\s*\((\d+)\)");
+                if (m2.Success && int.TryParse(m2.Groups[1].Value, out var nWhole))
+                {
+                    int total = nWhole;
+                    var vParen = System.Text.RegularExpressions.Regex.Match(normalizedType, @"V\s*9\s*\((\d+)\)");
+                    if (vParen.Success && int.TryParse(vParen.Groups[1].Value, out var nFrac))
+                    {
+                        total += nFrac;
+                    }
+                    else
+                    {
+                        var vNines = System.Text.RegularExpressions.Regex.Match(normalizedType, @"V\s*(9+)");
+                        if (vNines.Success) total += vNines.Groups[1].Value.Length;
+                    }
+                    return total;
+                }
+
+                // PIC S?9 V 999...
+                var m3 = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?\s*9\s*V\s*(9+)");
+                if (m3.Success) return 1 + m3.Groups[1].Value.Length;
+
+                return 0;
             }
 
-            // Handle PIC 9 - Single digit
-            if (normalizedType == "PIC 9")
+            // Alphanumeric and national character types
+            var xParen = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+X\s*\((\d+)\)");
+            if (xParen.Success && int.TryParse(xParen.Groups[1].Value, out var xLen))
+                return xLen * occurs;
+            if (System.Text.RegularExpressions.Regex.IsMatch(normalizedType, @"^\s*PIC\s+X\b")) return 1 * occurs;
+
+            var aParen = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+A\s*\((\d+)\)");
+            if (aParen.Success && int.TryParse(aParen.Groups[1].Value, out var aLen))
+                return aLen * occurs;
+
+            var nParen = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+N\s*\((\d+)\)");
+            if (nParen.Success && int.TryParse(nParen.Groups[1].Value, out var nLen))
+                return (nLen * 2) * occurs; // National often 2 bytes per char
+
+            // Repeated without parentheses: PIC XXX, PIC AAA, PIC NNN
+            var repeated = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+([XAN]+)\b");
+            if (repeated.Success)
             {
-                return 1;
+                var seq = repeated.Groups[1].Value;
+                if (seq.All(ch => ch == 'X')) return seq.Length * occurs;
+                if (seq.All(ch => ch == 'A')) return seq.Length * occurs;
+                if (seq.All(ch => ch == 'N')) return (seq.Length * 2) * occurs;
             }
 
-            // Handle PIC S9(n) - Signed numeric fields
-            var sNineMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+S9\((\d+)\)");
-            if (sNineMatch.Success && int.TryParse(sNineMatch.Groups[1].Value, out int sNineLength))
+            // Computational sizes (handle before date or display patterns)
+            if (isComp1) return 4 * occurs; // single precision float
+            if (isComp2) return 8 * occurs; // double precision float
+
+            if (isComp3)
             {
-                return sNineLength;
+                var digits = GetTotalNumericDigits();
+                if (digits == 0)
+                {
+                    var dMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?\s*9\s*\((\d+)\)");
+                    if (dMatch.Success && int.TryParse(dMatch.Groups[1].Value, out var d1)) digits = d1;
+                    var vMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"V\s*9\s*\((\d+)\)");
+                    if (vMatch.Success && int.TryParse(vMatch.Groups[1].Value, out var d2)) digits += d2;
+                    else
+                    {
+                        var vN = System.Text.RegularExpressions.Regex.Match(normalizedType, @"V\s*(9+)");
+                        if (vN.Success) digits += vN.Groups[1].Value.Length;
+                    }
+                }
+                if (digits > 0)
+                {
+                    int bytes = (int)Math.Ceiling((digits + 1) / 2.0); // +1 for sign nibble
+                    return bytes * occurs;
+                }
             }
 
-            // Handle PIC S9 - Signed single digit
-            if (normalizedType == "PIC S9")
+            if (isPlainComp || isComp5)
             {
-                return 1;
+                var digits = GetTotalNumericDigits();
+                if (digits == 0)
+                {
+                    var dMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?\s*9\s*\((\d+)\)");
+                    if (dMatch.Success && int.TryParse(dMatch.Groups[1].Value, out var d1)) digits = d1;
+                    else
+                    {
+                        var rep9 = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?(9+)\b");
+                        if (rep9.Success) digits = rep9.Groups[1].Value.Length;
+                    }
+                }
+                if (digits > 0)
+                {
+                    int bytes = digits <= 4 ? 2 : digits <= 9 ? 4 : 8; // typical native binary sizing
+                    return bytes * occurs;
+                }
             }
 
-            // Handle decimal types like PIC 9(n)V99
-            var decimalMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+[S]?9\((\d+)\)V(\d+)");
-            if (decimalMatch.Success && int.TryParse(decimalMatch.Groups[1].Value, out int wholeDigits))
+            // Common date formats in display (only when not computational)
+            if (!isPlainComp && !isComp1 && !isComp2 && !isComp3 && !isComp5)
             {
-                return wholeDigits; // Return whole digits part
+                if (normalizedType.Contains("PIC 9(8)")) return 8 * occurs; // YYYYMMDD
+                if (normalizedType.Contains("PIC 9(6)")) return 6 * occurs; // YYMMDD
+                if (normalizedType.Contains("PIC 9(7)")) return 7 * occurs; // YYYYDDD
             }
 
-            // Handle simple decimal types like PIC 9V99
-            var simpleDecimalMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+[S]?9V(\d+)");
-            if (simpleDecimalMatch.Success)
+            // Decimal display, repeated without parentheses: PIC S?999 V 99
+            var decRepeat = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?(9+)\s*V\s*(9+)\b");
+            if (decRepeat.Success)
             {
-                return 1; // Single digit before decimal
+                int dWhole = decRepeat.Groups[1].Value.Length;
+                int dFrac = decRepeat.Groups[2].Value.Length;
+                return ApplySignSeparate(dWhole + dFrac) * occurs;
             }
 
-            // Handle date formats
-            if (normalizedType.Contains("PIC 9(8)"))
+            // Numeric display (no decimal), parentheses
+            var nineMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+9\s*\((\d+)\)");
+            if (nineMatch.Success && int.TryParse(nineMatch.Groups[1].Value, out var nineLen)) return ApplySignSeparate(nineLen) * occurs;
+            if (System.Text.RegularExpressions.Regex.IsMatch(normalizedType, @"^\s*PIC\s+9\b")) return ApplySignSeparate(1) * occurs;
+
+            // Signed display (no separate sign column unless SIGN SEPARATE)
+            var sNineMatch = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S\s*9\s*\((\d+)\)");
+            if (sNineMatch.Success && int.TryParse(sNineMatch.Groups[1].Value, out var sNineLen)) return ApplySignSeparate(sNineLen) * occurs;
+            if (System.Text.RegularExpressions.Regex.IsMatch(normalizedType, @"^\s*PIC\s+S\s*9\b")) return ApplySignSeparate(1) * occurs;
+
+            // Decimal display (implied V, decimal point not stored), parentheses and repeated
+            var decParen = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?\s*9\s*\((\d+)\)\s*V\s*9\s*\((\d+)\)");
+            if (decParen.Success && int.TryParse(decParen.Groups[1].Value, out var w) && int.TryParse(decParen.Groups[2].Value, out var f))
+                return ApplySignSeparate(w + f) * occurs;
+            var decSimple = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+S?\s*9\s*V\s*(9+)\b");
+            if (decSimple.Success) return ApplySignSeparate(1 + decSimple.Groups[1].Value.Length) * occurs;
+
+            // Scaled decimal with P (P digits are implied and not stored)
+            var pScaled = System.Text.RegularExpressions.Regex.Match(normalizedType, @"^\s*PIC\s+9\s*\((\d+)\)\s*P\s*\((\d+)\)");
+            if (pScaled.Success && int.TryParse(pScaled.Groups[1].Value, out var pWhole) && int.TryParse(pScaled.Groups[2].Value, out var _))
+                return ApplySignSeparate(pWhole) * occurs;
+
+            // Editing types (approximate display width)
+            var zeroSuppressTrailingZ = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+9\s*\((\d+)\)\s*Z");
+            if (zeroSuppressTrailingZ.Success && int.TryParse(zeroSuppressTrailingZ.Groups[1].Value, out var z1)) return (z1 + 1) * occurs;
+            var zeroSuppressLeadingZ = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+Z\s*9\s*\((\d+)\)");
+            if (zeroSuppressLeadingZ.Success && int.TryParse(zeroSuppressLeadingZ.Groups[1].Value, out var z2)) return (z2 + 1) * occurs;
+            var blanksB = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+9\s*\((\d+)\)\s*B");
+            if (blanksB.Success && int.TryParse(blanksB.Groups[1].Value, out var b1)) return (b1 + 1) * occurs;
+            var asteriskFill = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+9\s*\((\d+)\)\s*\*");
+            if (asteriskFill.Success && int.TryParse(asteriskFill.Groups[1].Value, out var ast)) return (ast + 1) * occurs;
+            var currency = System.Text.RegularExpressions.Regex.Match(normalizedType, @"PIC\s+\$\s*9\s*\((\d+)\)\s*\.(\d+)");
+            if (currency.Success && int.TryParse(currency.Groups[1].Value, out var cWhole) && int.TryParse(currency.Groups[2].Value, out var cFrac))
+                return (1 + cWhole + 1 + cFrac) * occurs; // $ + digits + '.' + digits
+
+            if (normalizedType.EndsWith(" CR") || normalizedType.Contains(" CR "))
             {
-                return 8; // YYYYMMDD format
+                var digits = GetTotalNumericDigits();
+                if (digits > 0) return (digits + 2) * occurs;
             }
-            if (normalizedType.Contains("PIC 9(6)"))
+            if (normalizedType.EndsWith(" DB") || normalizedType.Contains(" DB "))
             {
-                return 6; // YYMMDD format
-            }
-            if (normalizedType.Contains("PIC 9(7)"))
-            {
-                return 7; // YYYYDDD (Julian) format
+                var digits = GetTotalNumericDigits();
+                if (digits > 0) return (digits + 2) * occurs;
             }
 
-            return 0; // Unknown type
+            // Fallback to total digits if available
+            var totalDigits = GetTotalNumericDigits();
+            if (totalDigits > 0) return ApplySignSeparate(totalDigits) * occurs;
+
+            return 0; // Unknown or unsupported type
         }
 
         /// <summary>
